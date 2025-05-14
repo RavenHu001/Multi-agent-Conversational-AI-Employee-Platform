@@ -1,0 +1,32 @@
+[
+    {
+      "type": "administration",
+      "name": "行政人事",
+      "avatar": "行政人事",
+      "background": "administration.jpg"
+    },
+    {
+      "type": "media",
+      "name": "新媒体运营",
+      "avatar": "新媒体运营",
+      "background": "media.jpg"
+    },
+    {
+      "type": "IT",
+      "name": "IT部门",
+      "avatar": "IT部门",
+      "background": "IT.jpg"
+    },
+    {
+      "type": "AIalgorithm",
+      "name": "AI算法",
+      "avatar": "AI算法",
+      "background": "AI.jpg"
+    },
+    {
+      "type": "Data",
+      "name": "数据部门",
+      "avatar": "数据部门",
+      "background": "Data.jpg"
+    }
+  ] 

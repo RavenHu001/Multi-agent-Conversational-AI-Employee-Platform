@@ -1,0 +1,258 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f5f5f5;
+    height: 100vh;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+    background-color: #ffffff;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+    width: 260px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+    padding: 20px 0;
+}
+
+.agent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.agent-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.agent-item:hover {
+    background-color: #e9ecef;
+}
+
+.agent-item.active {
+    background-color: #e9ecef;
+}
+
+.agent-avatar {
+    width: 36px;
+    height: 36px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    font-weight: bold;
+}
+
+.agent-name {
+    font-size: 14px;
+    color: #212529;
+}
+
+/* 主内容区域样式 */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 工具栏样式 */
+.toolbar {
+    padding: 16px 24px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.new-chat-btn {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.new-chat-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 聊天消息区域样式 */
+.chat-messages {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.message {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.message-content {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ai-message .message-content {
+    background-color: #f8f9fa;
+    color: #212529;
+    align-self: flex-start;
+}
+
+/* 输入区域样式 */
+.input-area {
+    padding: 20px 24px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 60px; /* 为底部栏留出空间 */
+}
+
+.message-input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    resize: none;
+    height: 44px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.message-input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.send-btn {
+    padding: 0 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.send-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 首页样式 */
+.home-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.navigate-btn {
+    padding: 24px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    width: 130px;
+    height: 130px;
+}
+
+.navigate-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 顶部横幅样式 */
+.header {
+    background-color: #007bff;
+    color: white;
+    padding: 16px 24px;
+    text-align: center;
+}
+
+.site-title {
+    margin: 0;
+    font-size: 24px;
+}
+
+/* 页脚样式 */
+.footer {
+    background-color: #f8f9fa;
+    color: #212529;
+    padding: 12px 24px;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-top: 1px solid #e9ecef;
+    font-weight: bold;
+}
+
+/* 底部部门选择栏样式 */
+.department-bar {
+    position: fixed;
+    bottom: 0;
+    left: 260px; /* 侧边栏宽度 */
+    right: 0;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.department-list {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 0 20px;
+    justify-content: center;
+    width: 100%;
+}
+
+.department-item {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    min-width: 120px;
+    text-align: center;
+    flex: 1;
+    max-width: 200px;
+}
+
+.department-item:hover {
+    background-color: #0056b3;
+}
+
+.department-item.active {
+    background-color: #0056b3;
+} 

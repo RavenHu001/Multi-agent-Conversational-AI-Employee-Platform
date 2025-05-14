@@ -1,0 +1,37 @@
+[
+  {
+    "type": "assistant",
+    "name": "行政人事助手",
+    "department-type": "administration",
+    "avatar": "AI",
+    "welcome": "你好！我是行政人事助手，有什么我可以帮你的吗？"
+  },
+  {
+    "type": "writer",
+    "name": "新媒体运营助手",
+    "department-type": "media",
+    "avatar": "AI",
+    "welcome": "你好！我是新媒体运营助手，需要我帮你写点什么吗？"
+  },
+  {
+    "type": "coder",
+    "name": "IT部门助手",
+    "department-type": "IT",
+    "avatar": "AI",
+    "welcome": "你好！我是IT部门助手，有什么代码相关的问题吗？"
+  },
+  {
+    "type": "coder",
+    "name": "AI算法助手",
+    "department-type": "AIalgorithm",
+    "avatar": "AI",
+    "welcome": "你好！我是AI算法助手，有什么AI算法相关的问题吗？"
+  },
+  {
+    "type": "coder",
+    "name": "数据部门助手",
+    "department-type": "Data",
+    "avatar": "AI",
+    "welcome": "你好！我是数据部门助手，有什么数据相关的问题吗？"
+  }
+] 
