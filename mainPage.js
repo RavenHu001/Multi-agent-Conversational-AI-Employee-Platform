@@ -8,6 +8,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Departments:', departments);
         displayDepartments(departments);
         
+        // 设置发送按钮事件
+        const sendBtn = document.querySelector('.send-btn');
+        const messageInput = document.querySelector('.message-input');
+        
+        sendBtn.addEventListener('click', () => sendMessage());
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
     } catch (error) {
         console.error('Error loading agents:', error);
     }
@@ -29,6 +41,84 @@ async function loadConfig(url) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
+}
+
+// 发送消息的函数
+async function sendMessage() {
+    const messageInput = document.querySelector('.message-input');
+    const message = messageInput.value.trim();
+    const activeAgent = document.querySelector('.agent-item.active');
+    
+    if (!message || !activeAgent) return;
+    
+    // 获取当前选中的智能体信息
+    const agentName = activeAgent.querySelector('.agent-name').textContent;
+    const agents = await loadConfig('agents.json');
+    const currentAgent = agents.find(agent => agent.name === agentName);
+    
+    if (!currentAgent) return;
+    
+    // 添加用户消息到聊天界面
+    addMessageToChat(message, 'user');
+    messageInput.value = '';
+    
+    try {
+        // 检查是否有API配置
+        if (currentAgent['API-URL'] && currentAgent['API-Key']) {
+            // 调用API发送消息
+            const response = await fetch(currentAgent['API-URL'], {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentAgent['API-Key']}`
+                },
+                body: JSON.stringify({
+                    bot_id: currentAgent['bot-id'],
+                    stream: false,
+                    auto_save_history: true,
+                    messages: [{
+                        role: 'user',
+                        content: message,
+                        content_type: "text"
+                    }],
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(data);
+            // 添加AI回复到聊天界面
+            if (data.messages && data.messages.length > 0) {
+                addMessageToChat(data.messages[0].content, 'ai');
+            } else {
+                addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+            }
+            //addMessageToChat(data.choices[0].message.content, 'ai');
+        } else {
+            // 如果没有API配置，使用默认回复
+            addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+        addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
+    }
+}
+
+// 添加消息到聊天界面的函数
+function addMessageToChat(message, type) {
+    const chatMessages = document.querySelector('.chat-messages');
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${type}-message`;
+    messageElement.innerHTML = `
+        <div class="message-content">
+            ${message}
+        </div>
+    `;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function setChatBox(agents){
