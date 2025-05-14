@@ -93,6 +93,7 @@ async function sendMessage() {
                     'Authorization': `Bearer ${currentAgent['API-Key']}`
                 },
                 body: JSON.stringify({
+                    model: currentAgent['API-Model'],
                     bot_id: currentAgent['bot-id'],
                     stream: false,
                     auto_save_history: true,
