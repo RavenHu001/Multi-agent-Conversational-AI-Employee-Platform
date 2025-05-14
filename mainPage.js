@@ -19,7 +19,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 sendMessage();
             }
         });
-        
+
+        // 新建会话按钮清空当前聊天记录
+        const newChatBtn = document.querySelector('.new-chat-btn');
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', clearCurrentChatHistory);
+        }
+
         // 恢复上次选择
         const savedDepartment = localStorage.getItem('selectedDepartment');
         const savedAgent = localStorage.getItem('selectedAgent');
@@ -86,25 +92,25 @@ async function sendMessage() {
         // 检查是否有API配置
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
             // 调用API发送消息
-            const response = await fetch(currentAgent['API-URL'], {
+            const response = await fetch(currentAgent['API-URL'],{
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentAgent['API-Key']}`
+                    'Authorization': `Bearer ${currentAgent['API-Key']}`,
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    bot_id: currentAgent['bot-id'],
-                    user_id: '470440507',
+                    "bot_id": currentAgent['bot-id'],
+                    "user_id": "123456",
                     "stream": false,
-                    "auto_save_history": true,
-                    messages: [{
-                        role: 'user',
-                        content: message,
-                        content_type: "text"
-                    }],
+                    "additional_messages": [{
+                    "content": message,
+                    "content_type": "text",
+                    "role": "user",
+                    "type": "question"
+                    }]
                 })
             });
-            
+            console.log(response);
             if (!response.ok) {
                 throw new Error(`API request failed: ${response.status}`);
             }
@@ -112,12 +118,11 @@ async function sendMessage() {
             const data = await response.json();
             console.log(data);
             // 添加AI回复到聊天界面
-            if (data.messages && data.messages.length > 0) {
-                addMessageToChat(data.messages[0].content, 'ai');
+            if (data.content && data.content.length > 0) {
+                addMessageToChat(data.content, 'ai');
             } else {
                 addMessageToChat('AI回复内容为空，请检查配置', 'ai');
             }
-            //addMessageToChat(data.choices[0].message.content, 'ai');
         } else {
             // 如果没有API配置，使用默认回复
             addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
@@ -285,5 +290,21 @@ function displayDepartments(departments) {
         
         departmentListContainer.appendChild(departmentItem);
     });
+}
+
+// 清空当前会话历史记录的函数
+function clearCurrentChatHistory() {
+    const activeAgent = document.querySelector('.agent-item.active');
+    const activeDepartment = document.querySelector('.department-item.active');
+    if (activeAgent && activeDepartment) {
+        const agentName = activeAgent.querySelector('.agent-name').textContent;
+        const departmentType = activeDepartment.getAttribute('data-department');
+        // 清空本地历史
+        saveChatHistory(departmentType, agentName, []);
+        // 清空界面
+        loadChatHistoryToUI(departmentType, agentName);
+    }
+    // 刷新页面
+    window.location.reload();
 }
 
