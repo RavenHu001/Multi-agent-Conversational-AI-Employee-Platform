@@ -127,7 +127,20 @@ async function sendMessage() {
     }
 }
 
-// 添加消息到聊天界面的函数
+// 辅助函数：获取聊天历史
+function getChatHistory(department, agent) {
+    const key = `chat_${department}_${agent}`;
+    const history = localStorage.getItem(key);
+    return history ? JSON.parse(history) : [];
+}
+
+// 辅助函数：保存聊天历史
+function saveChatHistory(department, agent, history) {
+    const key = `chat_${department}_${agent}`;
+    localStorage.setItem(key, JSON.stringify(history));
+}
+
+// 修改后的 addMessageToChat
 function addMessageToChat(message, type) {
     const chatMessages = document.querySelector('.chat-messages');
     const messageElement = document.createElement('div');
@@ -139,8 +152,38 @@ function addMessageToChat(message, type) {
     `;
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // 保存到历史
+    const activeAgent = document.querySelector('.agent-item.active');
+    const activeDepartment = document.querySelector('.department-item.active');
+    if (activeAgent && activeDepartment) {
+        const agentName = activeAgent.querySelector('.agent-name').textContent;
+        const departmentType = activeDepartment.getAttribute('data-department');
+        const history = getChatHistory(departmentType, agentName);
+        history.push({ type, message });
+        saveChatHistory(departmentType, agentName, history);
+    }
 }
 
+// 加载历史聊天记录到界面
+function loadChatHistoryToUI(department, agent) {
+    const chatMessages = document.querySelector('.chat-messages');
+    chatMessages.innerHTML = '';
+    const history = getChatHistory(department, agent);
+    history.forEach(item => {
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${item.type}-message`;
+        messageElement.innerHTML = `
+            <div class="message-content">
+                ${item.message}
+            </div>
+        `;
+        chatMessages.appendChild(messageElement);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 修改 setChatBox
 function setChatBox(agents){
     // 获取所有智能体元素
     const agentItems = document.querySelectorAll('.agent-item');
@@ -155,20 +198,24 @@ function setChatBox(agents){
             this.classList.add('active');
             // 获取当前选中的智能体类型
             const agentType = this.getAttribute('data-agent');
-            // 清空聊天记录
-            chatMessages.innerHTML = '';
-        
-            // 添加新智能体的欢迎消息
-            const welcomeMessage_str = agents.find(agent => agent.name === this.querySelector('.agent-name').textContent).welcome;
-            const welcomeMessage = document.createElement('div');
-            welcomeMessage.className = 'message ai-message';
-            welcomeMessage.innerHTML = `
-                <div class="message-content">
-                 ${welcomeMessage_str}
-                </div>
-            `;
-            chatMessages.appendChild(welcomeMessage);
-        
+            // 获取当前部门
+            const activeDepartment = document.querySelector('.department-item.active');
+            const departmentType = activeDepartment ? activeDepartment.getAttribute('data-department') : '';
+            // 加载历史聊天记录
+            loadChatHistoryToUI(departmentType, this.querySelector('.agent-name').textContent);
+            // 添加新智能体的欢迎消息（如果没有历史）
+            const history = getChatHistory(departmentType, this.querySelector('.agent-name').textContent);
+            if (history.length === 0) {
+                const welcomeMessage_str = agents.find(agent => agent.name === this.querySelector('.agent-name').textContent).welcome;
+                const welcomeMessage = document.createElement('div');
+                welcomeMessage.className = 'message ai-message';
+                welcomeMessage.innerHTML = `
+                    <div class="message-content">
+                     ${welcomeMessage_str}
+                    </div>
+                `;
+                chatMessages.appendChild(welcomeMessage);
+            }
             // 更新输入框的placeholder
             messageInput.placeholder = `向${this.querySelector('.agent-name').textContent}发送消息...`;
             // 保存当前选择的智能体
