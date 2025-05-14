@@ -24,16 +24,6 @@
     "welcome": "你好！我是AI算法助手，有什么AI算法相关的问题吗？"
   },
   {
-    "name":"DeepSeek",
-    "department-type":"AIalgorithm",
-    "avatar": "DS",
-    "welcome": "你好！我是DeepSeek，有什么问题吗？",
-    "API-URL": "https://api.deepseek.com/chat/completions",
-    "API-Model": "deepseek-chat",
-    "API-Key": "sk-f05f65202c74420587655c076d939ee1",
-    "bot-id": " "
-  },
-  {
     "name": "数据部门助手",
     "department-type": "Data",
     "avatar": "AI",
@@ -45,8 +35,8 @@
     "avatar": "AI",
     "welcome": "你好！我是智能问数，有什么数据相关的问题吗？",
     "API-URL": "https://api.coze.cn/v3/chat",
-    "API-Key": "pat_4Q5IXjs7fsId4QeyCxdAOZTb4R8xQt8sE1A2fX2puN5MFU3S8aI0L7mUJ73NZMUm",
+    "API-Key": "pat_obzFsE1Yxz9NZcX9MaxgZsveW96lY4Fj85WEU7AgTJzI9UDU2lmO881jSfF4f9Kv",
     "API-Model": "coze-v-pro",
-    "bot-id": "7496441985667711030"
+    "bot-id": "7504202514351800332"
   }
 ] 
