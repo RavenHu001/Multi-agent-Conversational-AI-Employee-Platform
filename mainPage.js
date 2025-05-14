@@ -20,17 +20,37 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
         
+        // 恢复上次选择
+        const savedDepartment = localStorage.getItem('selectedDepartment');
+        const savedAgent = localStorage.getItem('selectedAgent');
+        let departmentType = savedDepartment;
+        let agentName = savedAgent;
+
+        // 如果URL有参数，优先用URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('department')) departmentType = urlParams.get('department');
+        if (urlParams.get('agent')) agentName = urlParams.get('agent');
+
+        // 部门选择
+        if (departmentType) {
+            setTimeout(() => {
+                const departmentItem = document.querySelector(`.department-item[data-department="${departmentType}"]`);
+                if (departmentItem) {
+                    departmentItem.click();
+                    // 智能体选择延后到智能体渲染后
+                    setTimeout(() => {
+                        if (agentName) {
+                            const agentItem = Array.from(document.querySelectorAll('.agent-item')).find(
+                                item => item.querySelector('.agent-name').textContent === agentName
+                            );
+                            if (agentItem) agentItem.click();
+                        }
+                    }, 200);
+                }
+            }, 200);
+        }
     } catch (error) {
         console.error('Error loading agents:', error);
-    }
-    //按照输入链接自动选择部门
-    const urlParams = new URLSearchParams(window.location.search);
-    const departmentType = urlParams.get('department');
-    if (departmentType) {
-        const departmentItem = document.querySelector(`.department-item[data-department="${departmentType}"]`);
-        if (departmentItem) {
-            departmentItem.click();
-        }
     }
 });
 
@@ -151,6 +171,8 @@ function setChatBox(agents){
         
             // 更新输入框的placeholder
             messageInput.placeholder = `向${this.querySelector('.agent-name').textContent}发送消息...`;
+            // 保存当前选择的智能体
+            localStorage.setItem('selectedAgent', this.querySelector('.agent-name').textContent);
         });
     });
 }
@@ -176,6 +198,8 @@ function displayDepartments(departments) {
             
             // 获取当前选中的部门类型
             const selectedDepartment = this.getAttribute('data-department');
+            // 保存当前选择的部门
+            localStorage.setItem('selectedDepartment', selectedDepartment);
             
             // 过滤并显示属于该部门的智能体
             const agentListContainer = document.querySelector('.agent-list');
