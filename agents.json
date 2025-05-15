@@ -45,6 +45,8 @@
     "avatar": "AI",
     "welcome": "你好！我是智能问数，有什么数据相关的问题吗？",
     "API-URL": "https://api.coze.cn/v3/chat",
+    "API-URL-retrieve": "https://api.coze.cn/v3/chat/retrieve",
+    "API-URL-list": "https://api.coze.cn/v3/chat/message/list",
     "API-Key": "pat_nHfDUcwCQyiXaMH6oH4IGotZPVDYDMFknyB0D2WYfQ2VbcZfIboLgqrlf30weRbJ",
     "API-Model": "coze",
     "bot-id": "7504202514351800332"

@@ -89,7 +89,7 @@ async function sendMessage() {
 // 保留API调用相关函数
 //接入扣子智能体的函数，需要一个循环呼叫获取回复状态，一个呼叫获取详细结果
 async function sendMessageToCoze(message,currentAgent) {
-    const response = await fetch(currentAgent['API-URL'],{
+    let response = await fetch(currentAgent['API-URL'],{
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${currentAgent['API-Key']}`,
@@ -99,23 +99,51 @@ async function sendMessageToCoze(message,currentAgent) {
             "bot_id": currentAgent['bot-id'],
             "user_id": "123456",
             "stream": false,
+            "auto_save_history": true,
             "additional_messages": [{
-            "content": message,
-            "content_type": "text",
-            "role": "user",
-            "type": "question"
+                "role": "user",
+                "content": message,
+                "content_type": "text"
             }]
         })
     });
     if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
     }
-    console.log(response);
-
-    const data = await response.json();
+    let data = await response.json();
+    // console.log(response);
+    // console.log(data);
+    //第一次请求完成，获取两个id开始间隔一秒一次循环请求，直到data.status为complete
+    const id = data.data.id;
+    const conversation_id = data.data.conversation_id;
+    console.log(id,conversation_id);
+    //间隔一秒一次循环请求，直到data.status为complete
+    while(data.data.status !== 'completed'){
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        response = await fetch(currentAgent['API-URL-retrieve']+'?chat_id='+id+'&conversation_id='+conversation_id,{
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${currentAgent['API-Key']}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        // console.log(response);
+        data = await response.json();
+        // console.log(data);
+        console.log(data.data.status);
+    }
+    //获取详细结果
+    response = await fetch(currentAgent['API-URL-list']+'?chat_id='+id+'&conversation_id='+conversation_id,{
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${currentAgent['API-Key']}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    data = await response.json();
     console.log(data);
-    if(data.choices[0].message.content){
-        addMessageToChat(data.choices[0].message.content, 'ai');
+    if(data.data[1].content){
+        addMessageToChat(data.data[1].content, 'ai');
     } else {
         addMessageToChat('AI回复内容为空，请检查配置', 'ai');
     }
