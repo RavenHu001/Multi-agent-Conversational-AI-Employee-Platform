@@ -51,9 +51,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                             );
                             if (agentItem) agentItem.click();
                         }
-                    }, 200);
+                    }, 10);
                 }
-            }, 200);
+            }, 10);
         }
     } catch (error) {
         console.error('Error loading agents:', error);
@@ -87,29 +87,18 @@ async function sendMessage() {
     // 添加用户消息到聊天界面
     addMessageToChat(message, 'user');
     messageInput.value = '';
-    
+    //console.log(currentAgent);//调试用
+    //下面这个try肯定有问题，现在即不支持流式读取/询问，AI的回复也只能接收到空
     try {
         // 检查是否有API配置
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
             // 调用API发送消息
-            const response = await fetch(currentAgent['API-URL'],{
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${currentAgent['API-Key']}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    "bot_id": currentAgent['bot-id'],
-                    "user_id": "123456",
-                    "stream": false,
-                    "additional_messages": [{
-                    "content": message,
-                    "content_type": "text",
-                    "role": "user",
-                    "type": "question"
-                    }]
-                })
-            });
+            const response = null;
+            if(currentAgent['API-Model'] === 'deepseek-chat'){
+                response = await sendMessageToDeepSeek(message,currentAgent);
+            }else if(currentAgent['API-Model'] === 'coze'){
+                response = await sendMessageToCoze(message,currentAgent);
+            }
             console.log(response);
             if (!response.ok) {
                 throw new Error(`API request failed: ${response.status}`);
@@ -132,7 +121,47 @@ async function sendMessage() {
         addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
     }
 }
-
+//接入扣子智能体的函数
+async function sendMessageToCoze(message,currentAgent) {
+    const response = await fetch(currentAgent['API-URL'],{
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${currentAgent['API-Key']}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "bot_id": currentAgent['bot-id'],
+            "user_id": "123456",
+            "stream": false,
+            "additional_messages": [{
+            "content": message,
+            "content_type": "text",
+            "role": "user",
+            "type": "question"
+            }]
+        })
+    });
+    return response;
+}
+//接入DeepSeek智能体的函数
+async function sendMessageToDeepSeek(message,currentAgent) {
+    const response = await fetch(currentAgent['API-URL'],{
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentAgent['API-Key']}`
+        },
+        body: JSON.stringify({
+            model: currentAgent['API-Model'],
+            messages: [
+                {role: "system", content: "You are a helpful assistant."},
+                {role: 'user',content: message}
+            ],
+            stream: false
+        })
+    });
+    return response;
+}
 // 辅助函数：获取聊天历史
 function getChatHistory(department, agent) {
     const key = `chat_${department}_${agent}`;
