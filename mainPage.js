@@ -8,24 +8,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Departments:', departments);
         displayDepartments(departments);
         
-        // 设置发送按钮事件
-        const sendBtn = document.querySelector('.send-btn');
-        const messageInput = document.querySelector('.message-input');
-        
-        sendBtn.addEventListener('click', () => sendMessage());
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // 新建会话按钮清空当前聊天记录
-        const newChatBtn = document.querySelector('.new-chat-btn');
-        if (newChatBtn) {
-            newChatBtn.addEventListener('click', clearCurrentChatHistory);
-        }
-
         // 恢复上次选择
         const savedDepartment = localStorage.getItem('selectedDepartment');
         const savedAgent = localStorage.getItem('selectedAgent');
@@ -70,202 +52,222 @@ async function loadConfig(url) {
 }
 
 // 发送消息的函数
-async function sendMessage() {
-    const messageInput = document.querySelector('.message-input');
-    const message = messageInput.value.trim();
-    const activeAgent = document.querySelector('.agent-item.active');
+// async function sendMessage() {
+//     const messageInput = document.querySelector('.message-input');
+//     const message = messageInput.value.trim();
+//     const activeAgent = document.querySelector('.agent-item.active');
     
-    if (!message || !activeAgent) return;
+//     if (!message || !activeAgent) return;
     
-    // 获取当前选中的智能体信息
-    const agentName = activeAgent.querySelector('.agent-name').textContent;
-    const agents = await loadConfig('agents.json');
-    const currentAgent = agents.find(agent => agent.name === agentName);
+//     // 获取当前选中的智能体信息
+//     const agentName = activeAgent.querySelector('.agent-name').textContent;
+//     const agents = await loadConfig('agents.json');
+//     const currentAgent = agents.find(agent => agent.name === agentName);
     
-    if (!currentAgent) return;
+//     if (!currentAgent) return;
     
-    // 添加用户消息到聊天界面
-    addMessageToChat(message, 'user');
-    messageInput.value = '';
-    //console.log(currentAgent);//调试用
-    //下面这个try肯定有问题，现在即不支持流式读取/询问，AI的回复也只能接收到空
-    try {
-        // 检查是否有API配置
-        if (currentAgent['API-URL'] && currentAgent['API-Key']) {
-            // 调用API发送消息
-            let response;
-            if(currentAgent['API-Model'] === 'deepseek-chat'){
-                response = await sendMessageToDeepSeek(message,currentAgent);
-            }else if(currentAgent['API-Model'] === 'coze'){
-                response = await sendMessageToCoze(message,currentAgent);
-            }else{
-                throw new Error(`未知模型: ${currentAgent['API-Model']}`);
-            }
-            console.log(response);
-            if (!response.ok) {
-                throw new Error(`API request failed: ${response.status}`);
-            }
+//     // 添加用户消息到聊天界面
+//     addMessageToChat(message, 'user');
+//     messageInput.value = '';
+//     //console.log(currentAgent);//调试用
+//     //下面这个try肯定有问题，现在即不支持流式读取/询问，AI的回复也只能接收到空
+//     try {
+//         // 检查是否有API配置
+//         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
+//             // 调用API发送消息
+//             let response;
+//             if(currentAgent['API-Model'] === 'deepseek-chat'){
+//                 response = await sendMessageToDeepSeek(message,currentAgent);
+//             }else if(currentAgent['API-Model'] === 'coze'){
+//                 response = await sendMessageToCoze(message,currentAgent);
+//             }else{
+//                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
+//             }
+//             console.log(response);
+//             if (!response.ok) {
+//                 throw new Error(`API request failed: ${response.status}`);
+//             }
             
-            const data = await response.json();
-            console.log(data);
-            // 添加AI回复到聊天界面
-            // if (data.content && data.content.length > 0) {
-            //     addMessageToChat(data.content, 'ai');
-            // } else {
-            //     addMessageToChat('AI回复内容为空，请检查配置', 'ai');
-            // }
-            if(data.choices[0].message.content){
-                addMessageToChat(data.choices[0].message.content, 'ai');
-            }else{
-                addMessageToChat('AI回复内容为空，请检查配置', 'ai');
-            }
-        } else {
-            // 如果没有API配置，使用默认回复
-            addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
-        }
-    } catch (error) {
-        console.error('Error sending message:', error);
-        addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
-    }
-}
+//             const data = await response.json();
+//             console.log(data);
+//             // 添加AI回复到聊天界面
+//             // if (data.content && data.content.length > 0) {
+//             //     addMessageToChat(data.content, 'ai');
+//             // } else {
+//             //     addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+//             // }
+//             if(data.choices[0].message.content){
+//                 addMessageToChat(data.choices[0].message.content, 'ai');
+//             }else{
+//                 addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+//             }
+//         } else {
+//             // 如果没有API配置，使用默认回复
+//             addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
+//         }
+//     } catch (error) {
+//         console.error('Error sending message:', error);
+//         addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
+//     }
+// }
 //接入扣子智能体的函数
-async function sendMessageToCoze(message,currentAgent) {
-    const response = await fetch(currentAgent['API-URL'],{
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${currentAgent['API-Key']}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "bot_id": currentAgent['bot-id'],
-            "user_id": "123456",
-            "stream": false,
-            "additional_messages": [{
-            "content": message,
-            "content_type": "text",
-            "role": "user",
-            "type": "question"
-            }]
-        })
-    });
-    return response;
-}
+// async function sendMessageToCoze(message,currentAgent) {
+//     const response = await fetch(currentAgent['API-URL'],{
+//         method: 'POST',
+//         headers: {
+//             'Authorization': `Bearer ${currentAgent['API-Key']}`,
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({
+//             "bot_id": currentAgent['bot-id'],
+//             "user_id": "123456",
+//             "stream": false,
+//             "additional_messages": [{
+//             "content": message,
+//             "content_type": "text",
+//             "role": "user",
+//             "type": "question"
+//             }]
+//         })
+//     });
+//     return response;
+// }
 //接入DeepSeek智能体的函数
-async function sendMessageToDeepSeek(message,currentAgent) {
-    const response = await fetch(currentAgent['API-URL'],{
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentAgent['API-Key']}`
-        },
-        body: JSON.stringify({
-            model: currentAgent['API-Model'],
-            messages: [
-                {role: "system", content: "You are a helpful assistant."},
-                {role: 'user',content: message}
-            ],
-            stream: false
-        })
-    });
-    return response;
-}
+// async function sendMessageToDeepSeek(message,currentAgent) {
+//     const response = await fetch(currentAgent['API-URL'],{
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'Authorization': `Bearer ${currentAgent['API-Key']}`
+//         },
+//         body: JSON.stringify({
+//             model: currentAgent['API-Model'],
+//             messages: [
+//                 {role: "system", content: "You are a helpful assistant."},
+//                 {role: 'user',content: message}
+//             ],
+//             stream: false
+//         })
+//     });
+//     return response;
+// }
 // 辅助函数：获取聊天历史
-function getChatHistory(department, agent) {
-    const key = `chat_${department}_${agent}`;
-    const history = localStorage.getItem(key);
-    return history ? JSON.parse(history) : [];
-}
+// function getChatHistory(department, agent) {
+//     const key = `chat_${department}_${agent}`;
+//     const history = localStorage.getItem(key);
+//     return history ? JSON.parse(history) : [];
+// }
 
 // 辅助函数：保存聊天历史
-function saveChatHistory(department, agent, history) {
-    const key = `chat_${department}_${agent}`;
-    localStorage.setItem(key, JSON.stringify(history));
-}
+// function saveChatHistory(department, agent, history) {
+//     const key = `chat_${department}_${agent}`;
+//     localStorage.setItem(key, JSON.stringify(history));
+// }
 
 // 修改后的 addMessageToChat
-function addMessageToChat(message, type) {
-    const chatMessages = document.querySelector('.chat-messages');
-    const messageElement = document.createElement('div');
-    messageElement.className = `message ${type}-message`;
-    messageElement.innerHTML = `
-        <div class="message-content">
-            ${message}
-        </div>
-    `;
-    chatMessages.appendChild(messageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+// function addMessageToChat(message, type) {
+//     const chatMessages = document.querySelector('.chat-messages');
+//     const messageElement = document.createElement('div');
+//     messageElement.className = `message ${type}-message`;
+//     messageElement.innerHTML = `
+//         <div class="message-content">
+//             ${message}
+//         </div>
+//     `;
+//     chatMessages.appendChild(messageElement);
+//     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // 保存到历史
-    const activeAgent = document.querySelector('.agent-item.active');
-    const activeDepartment = document.querySelector('.department-item.active');
-    if (activeAgent && activeDepartment) {
-        const agentName = activeAgent.querySelector('.agent-name').textContent;
-        const departmentType = activeDepartment.getAttribute('data-department');
-        const history = getChatHistory(departmentType, agentName);
-        history.push({ type, message });
-        saveChatHistory(departmentType, agentName, history);
-    }
-}
+//     // 保存到历史
+//     const activeAgent = document.querySelector('.agent-item.active');
+//     const activeDepartment = document.querySelector('.department-item.active');
+//     if (activeAgent && activeDepartment) {
+//         const agentName = activeAgent.querySelector('.agent-name').textContent;
+//         const departmentType = activeDepartment.getAttribute('data-department');
+//         const history = getChatHistory(departmentType, agentName);
+//         history.push({ type, message });
+//         saveChatHistory(departmentType, agentName, history);
+//     }
+// }
 
 // 加载历史聊天记录到界面
-function loadChatHistoryToUI(department, agent) {
-    const chatMessages = document.querySelector('.chat-messages');
-    chatMessages.innerHTML = '';
-    const history = getChatHistory(department, agent);
-    history.forEach(item => {
-        const messageElement = document.createElement('div');
-        messageElement.className = `message ${item.type}-message`;
-        messageElement.innerHTML = `
-            <div class="message-content">
-                ${item.message}
-            </div>
-        `;
-        chatMessages.appendChild(messageElement);
-    });
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
+// function loadChatHistoryToUI(department, agent) {
+//     const chatMessages = document.querySelector('.chat-messages');
+//     chatMessages.innerHTML = '';
+//     const history = getChatHistory(department, agent);
+//     history.forEach(item => {
+//         const messageElement = document.createElement('div');
+//         messageElement.className = `message ${item.type}-message`;
+//         messageElement.innerHTML = `
+//             <div class="message-content">
+//                 ${item.message}
+//             </div>
+//         `;
+//         chatMessages.appendChild(messageElement);
+//     });
+//     chatMessages.scrollTop = chatMessages.scrollHeight;
+// }
 
 // 修改 setChatBox
-function setChatBox(agents){
-    // 获取所有智能体元素
+// function setChatBox(agents){
+//     // 获取所有智能体元素
+//     const agentItems = document.querySelectorAll('.agent-item');
+//     const chatMessages = document.querySelector('.chat-messages');
+//     const messageInput = document.querySelector('.message-input');
+//     // 为每个智能体添加点击事件
+//     agentItems.forEach(item => {
+//         item.addEventListener('click', function() {
+//             // 移除所有智能体的active类
+//             agentItems.forEach(agent => agent.classList.remove('active'));
+//             // 为当前点击的智能体添加active类
+//             this.classList.add('active');
+//             // 获取当前部门
+//             const activeDepartment = document.querySelector('.department-item.active');
+//             const departmentType = activeDepartment ? activeDepartment.getAttribute('data-department') : '';
+//             // 加载历史聊天记录
+//             loadChatHistoryToUI(departmentType, this.querySelector('.agent-name').textContent);
+//             // 添加新智能体的欢迎消息（如果没有历史）
+//             const history = getChatHistory(departmentType, this.querySelector('.agent-name').textContent);
+//             if (history.length === 0) {
+//                 const welcomeMessage_str = agents.find(agent => agent.name === this.querySelector('.agent-name').textContent).welcome;
+//                 const welcomeMessage = document.createElement('div');
+//                 welcomeMessage.className = 'message ai-message';
+//                 welcomeMessage.innerHTML = `
+//                     <div class="message-content">
+//                      ${welcomeMessage_str}
+//                     </div>
+//                 `;
+//                 chatMessages.appendChild(welcomeMessage);
+//             }
+//             // 更新输入框的placeholder
+//             messageInput.placeholder = `向${this.querySelector('.agent-name').textContent}发送消息...`;
+//             // 保存当前选择的智能体
+//             localStorage.setItem('selectedAgent', this.querySelector('.agent-name').textContent);
+//         });
+//     });
+// }
+//iframe的chatBox
+function setChatBox(agents) {
     const agentItems = document.querySelectorAll('.agent-item');
-    const chatMessages = document.querySelector('.chat-messages');
-    const messageInput = document.querySelector('.message-input');
-    // 为每个智能体添加点击事件
+    const chatFrame = document.querySelector('.chat-frame');
+    
     agentItems.forEach(item => {
         item.addEventListener('click', function() {
-            // 移除所有智能体的active类
             agentItems.forEach(agent => agent.classList.remove('active'));
-            // 为当前点击的智能体添加active类
             this.classList.add('active');
-            // 获取当前选中的智能体类型
-            const agentType = this.getAttribute('data-agent');
-            // 获取当前部门
+            
+            const agentName = this.querySelector('.agent-name').textContent;
             const activeDepartment = document.querySelector('.department-item.active');
             const departmentType = activeDepartment ? activeDepartment.getAttribute('data-department') : '';
-            // 加载历史聊天记录
-            loadChatHistoryToUI(departmentType, this.querySelector('.agent-name').textContent);
-            // 添加新智能体的欢迎消息（如果没有历史）
-            const history = getChatHistory(departmentType, this.querySelector('.agent-name').textContent);
-            if (history.length === 0) {
-                const welcomeMessage_str = agents.find(agent => agent.name === this.querySelector('.agent-name').textContent).welcome;
-                const welcomeMessage = document.createElement('div');
-                welcomeMessage.className = 'message ai-message';
-                welcomeMessage.innerHTML = `
-                    <div class="message-content">
-                     ${welcomeMessage_str}
-                    </div>
-                `;
-                chatMessages.appendChild(welcomeMessage);
+            
+            // 更新iframe的src
+            if (chatFrame) {
+                chatFrame.src = `chat.html?department=${departmentType}&agent=${encodeURIComponent(agentName)}`;
             }
-            // 更新输入框的placeholder
-            messageInput.placeholder = `向${this.querySelector('.agent-name').textContent}发送消息...`;
-            // 保存当前选择的智能体
-            localStorage.setItem('selectedAgent', this.querySelector('.agent-name').textContent);
+            
+            localStorage.setItem('selectedAgent', agentName);
         });
     });
 }
-
 //展示部门的函数
 function displayDepartments(departments) {
     const departmentListContainer = document.querySelector('.department-list');
@@ -310,11 +312,10 @@ function displayDepartments(departments) {
                     `;
                     agentListContainer.appendChild(agentItem);
                 });
-                
+
                 // 重新设置聊天框事件
                 setChatBox(departmentAgents);
-                
-                // 自动选择第一个智能体
+                //自动选择第一个智能体
                 const firstAgent = agentListContainer.querySelector('.agent-item');
                 if (firstAgent) {
                     firstAgent.click();
@@ -328,19 +329,5 @@ function displayDepartments(departments) {
     });
 }
 
-// 清空当前会话历史记录的函数
-function clearCurrentChatHistory() {
-    const activeAgent = document.querySelector('.agent-item.active');
-    const activeDepartment = document.querySelector('.department-item.active');
-    if (activeAgent && activeDepartment) {
-        const agentName = activeAgent.querySelector('.agent-name').textContent;
-        const departmentType = activeDepartment.getAttribute('data-department');
-        // 清空本地历史
-        saveChatHistory(departmentType, agentName, []);
-        // 清空界面
-        loadChatHistoryToUI(departmentType, agentName);
-    }
-    // 刷新页面
-    window.location.reload();
-}
+
 
