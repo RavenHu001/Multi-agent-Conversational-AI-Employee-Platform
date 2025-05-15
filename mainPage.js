@@ -93,11 +93,13 @@ async function sendMessage() {
         // 检查是否有API配置
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
             // 调用API发送消息
-            const response = null;
+            let response;
             if(currentAgent['API-Model'] === 'deepseek-chat'){
                 response = await sendMessageToDeepSeek(message,currentAgent);
             }else if(currentAgent['API-Model'] === 'coze'){
                 response = await sendMessageToCoze(message,currentAgent);
+            }else{
+                throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
             console.log(response);
             if (!response.ok) {
@@ -107,9 +109,14 @@ async function sendMessage() {
             const data = await response.json();
             console.log(data);
             // 添加AI回复到聊天界面
-            if (data.content && data.content.length > 0) {
-                addMessageToChat(data.content, 'ai');
-            } else {
+            // if (data.content && data.content.length > 0) {
+            //     addMessageToChat(data.content, 'ai');
+            // } else {
+            //     addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+            // }
+            if(data.choices[0].message.content){
+                addMessageToChat(data.choices[0].message.content, 'ai');
+            }else{
                 addMessageToChat('AI回复内容为空，请检查配置', 'ai');
             }
         } else {
