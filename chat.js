@@ -77,17 +77,6 @@ async function sendMessage() {
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
-
-            if (!response.ok) {
-                throw new Error(`API request failed: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            if(data.choices[0].message.content){
-                addMessageToChat(data.choices[0].message.content, 'ai');
-            } else {
-                addMessageToChat('AI回复内容为空，请检查配置', 'ai');
-            }
         } else {
             addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
         }
@@ -97,6 +86,70 @@ async function sendMessage() {
     }
 }
 
+// 保留API调用相关函数
+//接入扣子智能体的函数，需要一个循环呼叫获取回复状态，一个呼叫获取详细结果
+async function sendMessageToCoze(message,currentAgent) {
+    const response = await fetch(currentAgent['API-URL'],{
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${currentAgent['API-Key']}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "bot_id": currentAgent['bot-id'],
+            "user_id": "123456",
+            "stream": false,
+            "additional_messages": [{
+            "content": message,
+            "content_type": "text",
+            "role": "user",
+            "type": "question"
+            }]
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+    console.log(response);
+
+    const data = await response.json();
+    console.log(data);
+    if(data.choices[0].message.content){
+        addMessageToChat(data.choices[0].message.content, 'ai');
+    } else {
+        addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+    }
+}
+//接入DeepSeek智能体的函数
+async function sendMessageToDeepSeek(message,currentAgent) {
+    const response = await fetch(currentAgent['API-URL'],{
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentAgent['API-Key']}`
+        },
+        body: JSON.stringify({
+            model: currentAgent['API-Model'],
+            messages: [
+                {role: "system", content: "You are a helpful assistant."},
+                {role: 'user',content: message}
+            ],
+            stream: false
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+    console.log(response);
+
+    const data = await response.json();
+    console.log(data);
+    if(data.choices[0].message.content){
+        addMessageToChat(data.choices[0].message.content, 'ai');
+    } else {
+        addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+    }
+}
 // 保留其他辅助函数
 function getChatHistory(department, agent) {
     const key = `chat_${department}_${agent}`;
@@ -147,49 +200,6 @@ function loadChatHistoryToUI(department, agent) {
         chatMessages.appendChild(messageElement);
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-// 保留API调用相关函数
-//接入扣子智能体的函数
-async function sendMessageToCoze(message,currentAgent) {
-    const response = await fetch(currentAgent['API-URL'],{
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${currentAgent['API-Key']}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "bot_id": currentAgent['bot-id'],
-            "user_id": "123456",
-            "stream": false,
-            "additional_messages": [{
-            "content": message,
-            "content_type": "text",
-            "role": "user",
-            "type": "question"
-            }]
-        })
-    });
-    return response;
-}
-//接入DeepSeek智能体的函数
-async function sendMessageToDeepSeek(message,currentAgent) {
-    const response = await fetch(currentAgent['API-URL'],{
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentAgent['API-Key']}`
-        },
-        body: JSON.stringify({
-            model: currentAgent['API-Model'],
-            messages: [
-                {role: "system", content: "You are a helpful assistant."},
-                {role: 'user',content: message}
-            ],
-            stream: false
-        })
-    });
-    return response;
 }
 //清空当前会话历史记录的函数
 function clearCurrentChatHistory(agentName,departmentType) {
