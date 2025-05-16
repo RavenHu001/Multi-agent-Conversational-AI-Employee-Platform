@@ -46,6 +46,7 @@ async function loadConfig(url) {
     return await response.json();
 }
 
+
 async function sendMessage() {
     const messageInput = document.querySelector('.message-input');
     const message = messageInput.value.trim();
@@ -65,6 +66,7 @@ async function sendMessage() {
     if (!currentAgent) return;
     
     addMessageToChat(message, 'user');
+    appendMessageToHistory(departmentType, agentName, 'user', message);
     messageInput.value = '';
 
     // 添加加载消息
@@ -81,27 +83,30 @@ async function sendMessage() {
                 response = await sendMessageToCoze(message, currentAgent);
                 response = response===''?'AI回复内容为空，请检查配置':response;
                 removeMessage(loadingMessageId);
-                addMessageToChat(response, 'ai');
+                createStreamingAIMessageElement(response);
+                appendMessageToHistory(departmentType, agentName, 'ai', response);
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
         } else {
             removeMessage(loadingMessageId);
-            addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
+            createStreamingAIMessageElement("抱歉，我暂时无法回复。请稍后再试。");
+            appendMessageToHistory(departmentType, agentName, 'ai', "抱歉，我暂时无法回复。请稍后再试。");
         }
     } catch (error) {
         console.error('Error sending message:', error);
         removeMessage(loadingMessageId);
-        addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
+        createStreamingAIMessageElement("发送消息时出现错误，请稍后重试。");
+        appendMessageToHistory(departmentType, agentName, 'ai', "发送消息时出现错误，请稍后重试。");
     }
 }
 
-function createStreamingAIMessageElement() {
+function createStreamingAIMessageElement(content = '') {
     const chatMessages = document.querySelector('.chat-messages');
     const messageElement = document.createElement('div');
     messageElement.className = 'message ai-message';
     messageElement.innerHTML = `
-        <div class="message-content"></div>
+        <div class="message-content">${content ? marked.parse(content) : ''}</div>
         <div class="message-actions">
             <button class="copy-btn" onclick="copyMessage(this)"><img src="images/icons/copy.jpg" alt="复制" class="copy-icon"></button>
             <button class="download-btn" onclick="downloadMessage(this)"><img src="images/icons/download.jpg" alt="下载" class="download-icon"></button>
@@ -170,12 +175,7 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
             });
         }
     }
-    // 保存到历史
-    if (agentName && departmentType) {
-        const history = getChatHistory(departmentType, agentName);
-        history.push({ type: 'ai', message: fullText });
-        saveChatHistory(departmentType, agentName, history);
-    }
+    appendMessageToHistory(departmentType, agentName, 'ai', fullText);
     return fullText;
 }
 
@@ -336,7 +336,14 @@ function getChatHistory(department, agent) {
     const history = localStorage.getItem(key);
     return history ? JSON.parse(history) : [];
 }
-
+//这个可以实现单条历史的载入
+function appendMessageToHistory(department, agent, type, message) {
+    if (!department || !agent) return;
+    const history = getChatHistory(department, agent);
+    history.push({ type, message });
+    saveChatHistory(department, agent, history);
+}
+//这个是保存历史的底层部分，可以被用于清空历史记录
 function saveChatHistory(department, agent, history) {
     const key = `chat_${department}_${agent}`;
     localStorage.setItem(key, JSON.stringify(history));
