@@ -81,6 +81,7 @@ async function sendMessage() {
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
+            response = response===''?'AI回复内容为空，请检查配置':response;
             // 移除加载消息并添加实际响应
             removeMessage(loadingMessageId);
             addMessageToChat(response, 'ai');
@@ -151,11 +152,7 @@ async function sendMessageToCoze(message,currentAgent) {
     });
     data = await response.json();
     console.log(data);
-    if(data.data[1].content){
-        return data.data[1].content;
-    } else {
-        return 'AI回复内容为空，请检查配置';
-    }
+    return data.data[1].content;
 }
 //接入DeepSeek智能体的函数
 async function sendMessageToDeepSeek(message,currentAgent) {
@@ -181,19 +178,16 @@ async function sendMessageToDeepSeek(message,currentAgent) {
 
     const data = await response.json();
     console.log(data);
-    if(data.choices[0].message.content){
-        return data.choices[0].message.content;
-    } else {
-        return 'AI回复内容为空，请检查配置';
-    }
+    return data.choices[0].message.content;
 }
 // 保留其他辅助函数
 
 // 创建消息内容的函数
 function createMessageContent(message, type) {
+    //让AI的回复以markdown渲染
     return type === 'ai' ? `
         <div class="message-content">
-            ${message}
+            ${marked.parse(message)}
         </div>
         <div class="message-actions">
             <button class="copy-btn" onclick="copyMessage(this)"><img src="images/icons/copy.jpg" alt="复制" class="copy-icon"></button>
