@@ -67,6 +67,10 @@ async function sendMessage() {
     addMessageToChat(message, 'user');
     messageInput.value = '';
 
+    // 添加加载消息
+    const loadingMessageId = 'loading-message';
+    addMessageToChat('正在生成内容...', 'ai', loadingMessageId);
+
     try {
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
             let response;
@@ -77,11 +81,16 @@ async function sendMessage() {
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
+            // 移除加载消息并添加实际响应
+            removeMessage(loadingMessageId);
+            addMessageToChat(response, 'ai');
         } else {
+            removeMessage(loadingMessageId);
             addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
         }
     } catch (error) {
         console.error('Error sending message:', error);
+        removeMessage(loadingMessageId);
         addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
     }
 }
@@ -143,9 +152,9 @@ async function sendMessageToCoze(message,currentAgent) {
     data = await response.json();
     console.log(data);
     if(data.data[1].content){
-        addMessageToChat(data.data[1].content, 'ai');
+        return data.data[1].content;
     } else {
-        addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+        return 'AI回复内容为空，请检查配置';
     }
 }
 //接入DeepSeek智能体的函数
@@ -173,9 +182,9 @@ async function sendMessageToDeepSeek(message,currentAgent) {
     const data = await response.json();
     console.log(data);
     if(data.choices[0].message.content){
-        addMessageToChat(data.choices[0].message.content, 'ai');
+        return data.choices[0].message.content;
     } else {
-        addMessageToChat('AI回复内容为空，请检查配置', 'ai');
+        return 'AI回复内容为空，请检查配置';
     }
 }
 // 保留其他辅助函数
@@ -190,10 +199,13 @@ function saveChatHistory(department, agent, history) {
     localStorage.setItem(key, JSON.stringify(history));
 }
 
-function addMessageToChat(message, type) {
+function addMessageToChat(message, type, messageId = null) {
     const chatMessages = document.querySelector('.chat-messages');
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type}-message`;
+    if (messageId) {
+        messageElement.id = messageId;
+    }
     messageElement.innerHTML = `
         <div class="message-content">
             ${message}
@@ -202,11 +214,11 @@ function addMessageToChat(message, type) {
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // 保存到历史
+    // 保存到历史，但跳过加载消息
     const urlParams = new URLSearchParams(window.location.search);
     const agentName = urlParams.get('agent');
     const departmentType = urlParams.get('department');
-    if (agentName && departmentType) {
+    if (agentName && departmentType && !messageId) {
         const history = getChatHistory(departmentType, agentName);
         history.push({ type, message });
         saveChatHistory(departmentType, agentName, history);
@@ -237,4 +249,11 @@ function clearCurrentChatHistory(agentName,departmentType) {
     loadChatHistoryToUI(departmentType, agentName);
     // 刷新页面
     window.location.reload();
+}
+
+function removeMessage(messageId) {
+    const messageElement = document.getElementById(messageId);
+    if (messageElement) {
+        messageElement.remove();
+    }
 }
