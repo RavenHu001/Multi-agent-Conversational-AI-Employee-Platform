@@ -194,7 +194,10 @@ function createMessageContent(message, type) {
     return type === 'ai' ? `
         <div class="message-content">
             ${message}
-            <button class="copy-btn" onclick="copyMessage(this)">复制</button>
+        </div>
+        <div class="message-actions">
+            <button class="copy-btn" onclick="copyMessage(this)"><img src="images/icons/copy.jpg" alt="复制" class="copy-icon"></button>
+            <button class="download-btn" onclick="downloadMessage(this)"><img src="images/icons/download.jpg" alt="下载" class="download-icon"></button>
         </div>
     ` : `
         <div class="message-content">
@@ -228,9 +231,9 @@ function addMessageToChat(message, type, messageId = null) {
 
 // 添加复制功能
 function copyMessage(button) {
-    //这里是直接以button定位父元素，也就是message-content，然后获取其文本内容，并去除“复制”二字，然后去除前后空格
-    const messageContent = button.parentElement.textContent.replace('复制', '').trim();
-    //navigator.clipboard.writeText(messageContent)就是复制到剪贴板的代码
+    // 获取按钮上方的.message-content内容
+    const messageContentDiv = button.closest('.message-actions').previousElementSibling;
+    const messageContent = messageContentDiv ? messageContentDiv.textContent.trim() : '';
     navigator.clipboard.writeText(messageContent).then(() => {
         // 创建提示元素
         const notification = document.createElement('div');
@@ -245,6 +248,36 @@ function copyMessage(button) {
     }).catch(err => {
         console.error('复制失败:', err);
     });
+}
+//添加下载为world的函数
+function downloadMessage(button) {
+    // 获取按钮上方的.message-content内容
+    const messageContentDiv = button.closest('.message-actions').previousElementSibling;
+    const messageContent = messageContentDiv ? messageContentDiv.textContent.trim() : '';
+
+    // 创建Word文档内容（简单HTML即可被Word识别）
+    const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+              xmlns:w='urn:schemas-microsoft-com:office:word'
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'></head>
+        <body>${messageContent.replace(/\n/g, '<br>')}</body>
+        </html>
+    `;
+
+    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+
+    // 创建下载链接并自动点击
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'AI回复.doc';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
 }
 function getChatHistory(department, agent) {
     const key = `chat_${department}_${agent}`;

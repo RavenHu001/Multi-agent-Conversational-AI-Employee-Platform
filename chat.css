@@ -45,20 +45,55 @@
 }
 
 .copy-btn {
-    display: block;
+    display: inline-block;
     margin-top: 8px;
-    padding: 4px 8px;
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
     cursor: pointer;
     font-size: 12px;
     color: #666;
-    transition: background-color 0.2s;
+    position: relative;
+    vertical-align: middle;
 }
 
-.copy-btn:hover {
-    background-color: #e0e0e0;
+.copy-btn + .copy-btn {
+    margin-left: 8px;
+}
+
+.copy-btn::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 2;
+}
+
+.copy-btn:hover::after {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.copy-btn:hover .copy-icon {
+    filter: none;
+}
+
+.copy-icon {
+    width: 16px;
+    height: 20px;
+    vertical-align: middle;
+    position: relative;
+    z-index: 1;
 }
 
 .copy-notification {
@@ -160,4 +195,60 @@
 }
 .new-chat-btn:hover {
     background-color: #1976d2;
+}
+
+.download-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 12px;
+    color: #666;
+    position: relative;
+    vertical-align: middle;
+}
+
+.download-btn + .download-btn,
+.copy-btn + .download-btn,
+.download-btn + .copy-btn {
+    margin-left: 8px;
+}
+
+.download-btn::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 2;
+}
+
+.download-btn:hover::after {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.download-icon {
+    width: 16px;
+    height: 20px;
+    vertical-align: middle;
+    position: relative;
+    z-index: 1;
+}
+
+.message-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
 }
