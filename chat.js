@@ -188,15 +188,19 @@ async function sendMessageToDeepSeek(message,currentAgent) {
     }
 }
 // 保留其他辅助函数
-function getChatHistory(department, agent) {
-    const key = `chat_${department}_${agent}`;
-    const history = localStorage.getItem(key);
-    return history ? JSON.parse(history) : [];
-}
 
-function saveChatHistory(department, agent, history) {
-    const key = `chat_${department}_${agent}`;
-    localStorage.setItem(key, JSON.stringify(history));
+// 创建消息内容的函数
+function createMessageContent(message, type) {
+    return type === 'ai' ? `
+        <div class="message-content">
+            ${message}
+            <button class="copy-btn" onclick="copyMessage(this)">复制</button>
+        </div>
+    ` : `
+        <div class="message-content">
+            ${message}
+        </div>
+    `;
 }
 
 function addMessageToChat(message, type, messageId = null) {
@@ -207,19 +211,7 @@ function addMessageToChat(message, type, messageId = null) {
         messageElement.id = messageId;
     }
     
-    // 为AI消息添加复制按钮
-    const messageContent = type === 'ai' ? `
-        <div class="message-content">
-            ${message}
-            <button class="copy-btn" onclick="copyMessage(this)">复制</button>
-        </div>
-    ` : `
-        <div class="message-content">
-            ${message}
-        </div>
-    `;
-    
-    messageElement.innerHTML = messageContent;
+    messageElement.innerHTML = createMessageContent(message, type);
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -253,6 +245,16 @@ function copyMessage(button) {
         console.error('复制失败:', err);
     });
 }
+function getChatHistory(department, agent) {
+    const key = `chat_${department}_${agent}`;
+    const history = localStorage.getItem(key);
+    return history ? JSON.parse(history) : [];
+}
+
+function saveChatHistory(department, agent, history) {
+    const key = `chat_${department}_${agent}`;
+    localStorage.setItem(key, JSON.stringify(history));
+}
 
 function loadChatHistoryToUI(department, agent) {
     const chatMessages = document.querySelector('.chat-messages');
@@ -261,19 +263,7 @@ function loadChatHistoryToUI(department, agent) {
     history.forEach(item => {
         const messageElement = document.createElement('div');
         messageElement.className = `message ${item.type}-message`;
-        // 为AI消息添加复制按钮
-        const messageContent = item.type === 'ai' ? `
-            <div class="message-content">
-                ${item.message}
-                <button class="copy-btn" onclick="copyMessage(this)">复制</button>
-            </div>
-        ` : `
-            <div class="message-content">
-                ${item.message}
-            </div>
-        `;
-
-        messageElement.innerHTML = messageContent;
+        messageElement.innerHTML = createMessageContent(item.message, item.type);
         chatMessages.appendChild(messageElement);
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
