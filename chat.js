@@ -75,16 +75,16 @@ async function sendMessage() {
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
             let response;
             if(currentAgent['API-Model'] === 'deepseek-chat'){
-                response = await sendMessageToDeepSeek(message, currentAgent);
+                // 流式渲染
+                response = await sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName);
             } else if(currentAgent['API-Model'] === 'coze'){
                 response = await sendMessageToCoze(message, currentAgent);
+                response = response===''?'AI回复内容为空，请检查配置':response;
+                removeMessage(loadingMessageId);
+                addMessageToChat(response, 'ai');
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
-            response = response===''?'AI回复内容为空，请检查配置':response;
-            // 移除加载消息并添加实际响应
-            removeMessage(loadingMessageId);
-            addMessageToChat(response, 'ai');
         } else {
             removeMessage(loadingMessageId);
             addMessageToChat("抱歉，我暂时无法回复。请稍后再试。", 'ai');
@@ -94,6 +94,89 @@ async function sendMessage() {
         removeMessage(loadingMessageId);
         addMessageToChat("发送消息时出现错误，请稍后重试。", 'ai');
     }
+}
+
+function createStreamingAIMessageElement() {
+    const chatMessages = document.querySelector('.chat-messages');
+    const messageElement = document.createElement('div');
+    messageElement.className = 'message ai-message';
+    messageElement.innerHTML = `
+        <div class="message-content"></div>
+        <div class="message-actions">
+            <button class="copy-btn" onclick="copyMessage(this)"><img src="images/icons/copy.jpg" alt="复制" class="copy-icon"></button>
+            <button class="download-btn" onclick="downloadMessage(this)"><img src="images/icons/download.jpg" alt="下载" class="download-icon"></button>
+        </div>
+    `;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    const contentDiv = messageElement.querySelector('.message-content');
+    return { messageElement, contentDiv };
+}
+
+// 流式接入DeepSeek智能体的函数
+async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName) {
+    // 移除加载消息
+    removeMessage(loadingMessageId);
+    // 使用独立方法插入AI消息div
+    const { messageElement, contentDiv } = createStreamingAIMessageElement();
+
+    // 发起流式请求
+    const response = await fetch(currentAgent['API-URL'], {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentAgent['API-Key']}`
+        },
+        body: JSON.stringify({
+            model: currentAgent['API-Model'],
+            messages: [
+                { role: "system", content: "You are a helpful assistant." },
+                { role: 'user', content: message }
+            ],
+            stream: true
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+    let done = false;
+    const chatMessages = document.querySelector('.chat-messages');
+    while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            // 解析SSE格式（如以data: 开头的行）
+            chunk.split('\n').forEach(line => {
+                if (line.startsWith('data:')) {
+                    const data = line.replace(/^data:\s*/, '');
+                    if (data === '[DONE]') return;
+                    try {
+                        const json = JSON.parse(data);
+                        const delta = json.choices?.[0]?.delta?.content || '';
+                        fullText += delta;
+                        contentDiv.innerHTML = marked.parse(fullText);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        // 忽略解析失败
+                    }
+                }
+            });
+        }
+    }
+    // 保存到历史
+    if (agentName && departmentType) {
+        const history = getChatHistory(departmentType, agentName);
+        history.push({ type: 'ai', message: fullText });
+        saveChatHistory(departmentType, agentName, history);
+    }
+    return fullText;
 }
 
 // 保留API调用相关函数
@@ -154,32 +237,7 @@ async function sendMessageToCoze(message,currentAgent) {
     console.log(data);
     return data.data[1].content;
 }
-//接入DeepSeek智能体的函数
-async function sendMessageToDeepSeek(message,currentAgent) {
-    const response = await fetch(currentAgent['API-URL'],{
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentAgent['API-Key']}`
-        },
-        body: JSON.stringify({
-            model: currentAgent['API-Model'],
-            messages: [
-                {role: "system", content: "You are a helpful assistant."},
-                {role: 'user',content: message}
-            ],
-            stream: false
-        })
-    });
-    if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-    }
-    console.log(response);
 
-    const data = await response.json();
-    console.log(data);
-    return data.choices[0].message.content;
-}
 // 保留其他辅助函数
 
 // 创建消息内容的函数
