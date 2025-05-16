@@ -228,6 +228,7 @@ function addMessageToChat(message, type, messageId = null) {
 
 // 添加复制功能
 function copyMessage(button) {
+    //这里是直接以button定位父元素，也就是message-content，然后获取其文本内容，并去除“复制”二字，然后去除前后空格
     const messageContent = button.parentElement.textContent.replace('复制', '').trim();
     //navigator.clipboard.writeText(messageContent)就是复制到剪贴板的代码
     navigator.clipboard.writeText(messageContent).then(() => {
