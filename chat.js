@@ -206,11 +206,20 @@ function addMessageToChat(message, type, messageId = null) {
     if (messageId) {
         messageElement.id = messageId;
     }
-    messageElement.innerHTML = `
+    
+    // 为AI消息添加复制按钮
+    const messageContent = type === 'ai' ? `
+        <div class="message-content">
+            ${message}
+            <button class="copy-btn" onclick="copyMessage(this)">复制</button>
+        </div>
+    ` : `
         <div class="message-content">
             ${message}
         </div>
     `;
+    
+    messageElement.innerHTML = messageContent;
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -225,6 +234,26 @@ function addMessageToChat(message, type, messageId = null) {
     }
 }
 
+// 添加复制功能
+function copyMessage(button) {
+    const messageContent = button.parentElement.textContent.replace('复制', '').trim();
+    //navigator.clipboard.writeText(messageContent)就是复制到剪贴板的代码
+    navigator.clipboard.writeText(messageContent).then(() => {
+        // 创建提示元素
+        const notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.textContent = '已复制到剪贴板';
+        document.body.appendChild(notification);
+
+        // 2秒后移除提示
+        setTimeout(() => {
+            notification.remove();
+        }, 2000);
+    }).catch(err => {
+        console.error('复制失败:', err);
+    });
+}
+
 function loadChatHistoryToUI(department, agent) {
     const chatMessages = document.querySelector('.chat-messages');
     chatMessages.innerHTML = '';
@@ -232,11 +261,19 @@ function loadChatHistoryToUI(department, agent) {
     history.forEach(item => {
         const messageElement = document.createElement('div');
         messageElement.className = `message ${item.type}-message`;
-        messageElement.innerHTML = `
+        // 为AI消息添加复制按钮
+        const messageContent = item.type === 'ai' ? `
+            <div class="message-content">
+                ${item.message}
+                <button class="copy-btn" onclick="copyMessage(this)">复制</button>
+            </div>
+        ` : `
             <div class="message-content">
                 ${item.message}
             </div>
         `;
+
+        messageElement.innerHTML = messageContent;
         chatMessages.appendChild(messageElement);
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
