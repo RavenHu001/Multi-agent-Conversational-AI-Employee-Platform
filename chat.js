@@ -66,7 +66,6 @@ async function sendMessage() {
     if (!currentAgent) return;
     
     addMessageToChat(message, 'user');
-    appendMessageToHistory(departmentType, agentName, 'user', message);
     messageInput.value = '';
 
     // 添加加载消息
@@ -80,11 +79,12 @@ async function sendMessage() {
                 // 流式渲染
                 response = await sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName);
             } else if(currentAgent['API-Model'] === 'coze'){
-                response = await sendMessageToCoze(message, currentAgent);
-                response = response===''?'AI回复内容为空，请检查配置':response;
-                removeMessage(loadingMessageId);
-                createStreamingAIMessageElement(response);
-                appendMessageToHistory(departmentType, agentName, 'ai', response);
+                response = await sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName)
+                // response = await sendMessageToCoze(message, currentAgent);
+                // response = response===''?'AI回复内容为空，请检查配置':response;
+                // removeMessage(loadingMessageId);
+                // createStreamingAIMessageElement(response);
+                // appendMessageToHistory(departmentType, agentName, 'ai', response);
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
@@ -179,9 +179,70 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
     return fullText;
 }
 
-// 保留API调用相关函数
-//接入扣子智能体的函数，需要一个循环呼叫获取回复状态，一个呼叫获取详细结果
-async function sendMessageToCoze(message,currentAgent) {
+//非流式，接入扣子智能体的函数，需要一个循环呼叫获取回复状态，一个呼叫获取详细结果
+// async function sendMessageToCoze(message,currentAgent) {
+//     let response = await fetch(currentAgent['API-URL'],{
+//         method: 'POST',
+//         headers: {
+//             'Authorization': `Bearer ${currentAgent['API-Key']}`,
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({
+//             "bot_id": currentAgent['bot-id'],
+//             "user_id": "123456",
+//             "stream": false,
+//             "auto_save_history": true,
+//             "additional_messages": [{
+//                 "role": "user",
+//                 "content": message,
+//                 "content_type": "text"
+//             }]
+//         })
+//     });
+//     if (!response.ok) {
+//         throw new Error(`API request failed: ${response.status}`);
+//     }
+//     let data = await response.json();
+//     // console.log(response);
+//     // console.log(data);
+//     //第一次请求完成，获取两个id开始间隔一秒一次循环请求，直到data.status为complete
+//     const id = data.data.id;
+//     const conversation_id = data.data.conversation_id;
+//     console.log(id,conversation_id);
+//     //间隔一秒一次循环请求，直到data.status为complete
+//     while(data.data.status !== 'completed'){
+//         await new Promise(resolve => setTimeout(resolve, 1000));
+//         response = await fetch(currentAgent['API-URL-retrieve']+'?chat_id='+id+'&conversation_id='+conversation_id,{
+//             method: 'GET',
+//             headers: {
+//                 'Authorization': `Bearer ${currentAgent['API-Key']}`,
+//                 'Content-Type': 'application/json'
+//             }
+//         });
+//         // console.log(response);
+//         data = await response.json();
+//         // console.log(data);
+//         console.log(data.data.status);
+//     }
+//     //获取详细结果
+//     response = await fetch(currentAgent['API-URL-list']+'?chat_id='+id+'&conversation_id='+conversation_id,{
+//         method: 'GET',
+//         headers: {
+//             'Authorization': `Bearer ${currentAgent['API-Key']}`,
+//             'Content-Type': 'application/json'
+//         }
+//     });
+//     data = await response.json();
+//     console.log(data);
+//     return data.data[1].content;
+// }
+//流式，接入扣子智能体的函数
+async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName){
+    // 移除加载消息
+    removeMessage(loadingMessageId);
+    // 使用独立方法插入AI消息div
+    const { messageElement, contentDiv } = createStreamingAIMessageElement();
+    //发送流式请求
     let response = await fetch(currentAgent['API-URL'],{
         method: 'POST',
         headers: {
@@ -191,8 +252,7 @@ async function sendMessageToCoze(message,currentAgent) {
         body: JSON.stringify({
             "bot_id": currentAgent['bot-id'],
             "user_id": "123456",
-            "stream": false,
-            "auto_save_history": true,
+            "stream": true,
             "additional_messages": [{
                 "role": "user",
                 "content": message,
@@ -203,41 +263,47 @@ async function sendMessageToCoze(message,currentAgent) {
     if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
     }
-    let data = await response.json();
-    // console.log(response);
-    // console.log(data);
-    //第一次请求完成，获取两个id开始间隔一秒一次循环请求，直到data.status为complete
-    const id = data.data.id;
-    const conversation_id = data.data.conversation_id;
-    console.log(id,conversation_id);
-    //间隔一秒一次循环请求，直到data.status为complete
-    while(data.data.status !== 'completed'){
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        response = await fetch(currentAgent['API-URL-retrieve']+'?chat_id='+id+'&conversation_id='+conversation_id,{
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${currentAgent['API-Key']}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        // console.log(response);
-        data = await response.json();
-        // console.log(data);
-        console.log(data.data.status);
-    }
-    //获取详细结果
-    response = await fetch(currentAgent['API-URL-list']+'?chat_id='+id+'&conversation_id='+conversation_id,{
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${currentAgent['API-Key']}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    data = await response.json();
-    console.log(data);
-    return data.data[1].content;
-}
 
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+    let done = false;
+    const chatMessages = document.querySelector('.chat-messages');
+    while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            // 解析SSE格式（如以data: 开头的行）
+            chunk.split('\n').forEach(line => {
+                if (line.startsWith('data:')) {
+                    const data = line.replace(/^data:\s*/, '');
+                    console.log(data);
+                    if (data === '[DONE]') return;
+                    try {
+                        const json = JSON.parse(data);
+                        let delta='';
+                        if(json.type){
+                            if(json.type==="answer"){
+                                delta=json.content;
+                            }else if(json.type==="follow_up"){
+                                delta='<br>'+json.content;
+                            }
+                        }
+                        fullText += delta;
+                        contentDiv.innerHTML = marked.parse(fullText);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        // 忽略解析失败
+                    }
+                }
+            });
+        }     
+    }
+    appendMessageToHistory(departmentType, agentName, 'ai', fullText);
+    return fullText;
+}
 // 保留其他辅助函数
 
 // 创建消息内容的函数
@@ -271,13 +337,11 @@ function addMessageToChat(message, type, messageId = null) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     // 保存到历史，但跳过加载消息
-    const urlParams = new URLSearchParams(window.location.search);
-    const agentName = urlParams.get('agent');
-    const departmentType = urlParams.get('department');
-    if (agentName && departmentType && !messageId) {
-        const history = getChatHistory(departmentType, agentName);
-        history.push({ type, message });
-        saveChatHistory(departmentType, agentName, history);
+    if (!messageId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const agentName = urlParams.get('agent');
+        const departmentType = urlParams.get('department');
+        appendMessageToHistory(departmentType, agentName, type, message);
     }
 }
 
