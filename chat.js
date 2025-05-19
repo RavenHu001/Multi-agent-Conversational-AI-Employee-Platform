@@ -178,64 +178,6 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
     appendMessageToHistory(departmentType, agentName, 'ai', fullText);
     return fullText;
 }
-
-//非流式，接入扣子智能体的函数，需要一个循环呼叫获取回复状态，一个呼叫获取详细结果
-// async function sendMessageToCoze(message,currentAgent) {
-//     let response = await fetch(currentAgent['API-URL'],{
-//         method: 'POST',
-//         headers: {
-//             'Authorization': `Bearer ${currentAgent['API-Key']}`,
-//             'Content-Type': 'application/json'
-//         },
-//         body: JSON.stringify({
-//             "bot_id": currentAgent['bot-id'],
-//             "user_id": "123456",
-//             "stream": false,
-//             "auto_save_history": true,
-//             "additional_messages": [{
-//                 "role": "user",
-//                 "content": message,
-//                 "content_type": "text"
-//             }]
-//         })
-//     });
-//     if (!response.ok) {
-//         throw new Error(`API request failed: ${response.status}`);
-//     }
-//     let data = await response.json();
-//     // console.log(response);
-//     // console.log(data);
-//     //第一次请求完成，获取两个id开始间隔一秒一次循环请求，直到data.status为complete
-//     const id = data.data.id;
-//     const conversation_id = data.data.conversation_id;
-//     console.log(id,conversation_id);
-//     //间隔一秒一次循环请求，直到data.status为complete
-//     while(data.data.status !== 'completed'){
-//         await new Promise(resolve => setTimeout(resolve, 1000));
-//         response = await fetch(currentAgent['API-URL-retrieve']+'?chat_id='+id+'&conversation_id='+conversation_id,{
-//             method: 'GET',
-//             headers: {
-//                 'Authorization': `Bearer ${currentAgent['API-Key']}`,
-//                 'Content-Type': 'application/json'
-//             }
-//         });
-//         // console.log(response);
-//         data = await response.json();
-//         // console.log(data);
-//         console.log(data.data.status);
-//     }
-//     //获取详细结果
-//     response = await fetch(currentAgent['API-URL-list']+'?chat_id='+id+'&conversation_id='+conversation_id,{
-//         method: 'GET',
-//         headers: {
-//             'Authorization': `Bearer ${currentAgent['API-Key']}`,
-//             'Content-Type': 'application/json'
-//         }
-//     });
-//     data = await response.json();
-//     console.log(data);
-//     return data.data[1].content;
-// }
 //流式，接入扣子智能体的函数
 async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName){
     // 移除加载消息
@@ -442,7 +384,7 @@ function removeMessage(messageId) {
     }
 }
 
-function handleFileUpload(event) {
+async function handleFileUpload(event) {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -506,8 +448,59 @@ function handleFileUpload(event) {
 
         filePreview.appendChild(fileItem);
 
-        // 模拟上传进度
-        simulateFileUpload(fileItem, file);
+        // 上传文件
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://localhost:3000/upload', true);
+
+            // 上传进度
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                }
+            };
+
+            // 上传完成
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        fileItem.classList.add('uploaded');
+                        // 保存上传成功的文件信息到本地存储
+                        const uploadedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+                        uploadedFiles.push({
+                            filename: response.file.filename,
+                            originalname: response.file.originalname,
+                            size: response.file.size,
+                            mimetype: response.file.mimetype,
+                            uploadTime: new Date().toISOString()
+                        });
+                        localStorage.setItem('uploadedFiles', JSON.stringify(uploadedFiles));
+                        console.log('文件上传成功:', response.file);
+                    }
+                } else {
+                    const error = JSON.parse(xhr.responseText);
+                    alert(`上传失败: ${error.error}`);
+                    removeFile(fileItem);
+                }
+            };
+
+            // 上传错误
+            xhr.onerror = () => {
+                alert('上传失败，请检查网络连接');
+                removeFile(fileItem);
+            };
+
+            xhr.send(formData);
+        } catch (error) {
+            console.error('上传出错:', error);
+            alert('上传失败，请重试');
+            removeFile(fileItem);
+        }
     }
 
     // 清空文件输入框，允许重复选择相同文件
@@ -558,3 +551,53 @@ function simulateFileUpload(fileItem, file) {
         progressBar.style.width = `${progress}%`;
     }, 200);
 }
+
+// 添加页面加载时恢复已上传文件的函数
+function restoreUploadedFiles() {
+    const filePreview = document.getElementById('file-preview');
+    const uploadedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    
+    uploadedFiles.forEach(file => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item uploaded';
+        fileItem.dataset.fileName = file.originalname;
+        
+        const fileIcon = document.createElement('div');
+        fileIcon.className = 'file-icon';
+        fileIcon.textContent = getFileIcon(file.mimetype);
+        fileItem.appendChild(fileIcon);
+
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'file-info';
+        fileInfo.textContent = formatFileSize(file.size);
+        fileItem.appendChild(fileInfo);
+
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.style.width = '100%';
+        fileItem.appendChild(progressBar);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = () => {
+            removeFile(fileItem);
+            // 从本地存储中移除文件信息
+            const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+            const index = files.findIndex(f => f.filename === file.filename);
+            if (index > -1) {
+                files.splice(index, 1);
+                localStorage.setItem('uploadedFiles', JSON.stringify(files));
+    }
+        };
+        fileItem.appendChild(removeBtn);
+
+        filePreview.appendChild(fileItem);
+    });
+}
+
+// 在页面加载时恢复已上传的文件
+document.addEventListener('DOMContentLoaded', function() {
+    restoreUploadedFiles();
+    // ... 其他现有的 DOMContentLoaded 事件处理代码 ...
+});
