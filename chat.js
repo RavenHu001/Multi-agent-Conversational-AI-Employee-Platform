@@ -125,20 +125,16 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
 
-    // 发起流式请求
-    const response = await fetch(currentAgent['API-URL'], {
+    const response = await fetch('http://localhost:3000/deepseek', {//需要让这里能自动获取后端服务器的根目录
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentAgent['API-Key']}`
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+            message: message,
             model: currentAgent['API-Model'],
-            messages: [
-                { role: "system", content: "You are a helpful assistant." },
-                { role: 'user', content: message }
-            ],
-            stream: true
+            apiKey: currentAgent['API-Key'],
+            url: currentAgent['API-URL']
         })
     });
 
@@ -454,7 +450,7 @@ async function handleFileUpload(event) {
             formData.append('file', file);
 
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://localhost:3000/upload', true);
+            xhr.open('POST', 'http://localhost:3000/upload', true);//需要让这里能自动获取后端服务器的根目录
 
             // 上传进度
             xhr.upload.onprogress = (e) => {

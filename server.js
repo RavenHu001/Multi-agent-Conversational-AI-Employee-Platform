@@ -3,7 +3,7 @@ const express = require('express');    // Express框架，用于创建Web服务�
 const multer = require('multer');      // Multer中间件，用于处理文件上传
 const path = require('path');          // Node.js路径模块，用于处理文件路径
 const cors = require('cors');          // CORS中间件，用于处理跨域请求
-const fs = require('fs');              // Node.js文件系统模块，用于文件操作
+const fs = require('fs');              // Node.js文件系统模块，用于文件操作s
 
 // 创建Express应用实例
 const app = express();
@@ -12,6 +12,9 @@ const port = 3000;
 
 // 启用CORS中间件，允许跨域请求
 app.use(cors());
+
+// 添加 JSON 解析中间件
+app.use(express.json());
 
 // 添加请求日志中间件，记录所有HTTP请求
 app.use((req, res, next) => {
@@ -135,3 +138,50 @@ app.listen(port, () => {
     console.log(`[${new Date().toLocaleString()}] 服务器运行在 http://localhost:${port}`);
     console.log(`[${new Date().toLocaleString()}] 等待文件上传...`);
 }); 
+
+//流式接入DeepSeek
+app.post('/deepseek', async (req, res) => {
+    console.log(req.body);
+    const userMessage = req.body.message;
+    const model = req.body.model;
+    const apiKey = req.body.apiKey;
+    const url = req.body.url;
+    
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    // 发起流式请求
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: [
+                { role: "system", content: "You are a helpful assistant." },
+                { role: 'user', content: userMessage }
+            ],
+            stream: true
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
+    }
+    res.end();
+});
