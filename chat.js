@@ -80,11 +80,6 @@ async function sendMessage() {
                 response = await sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName);
             } else if(currentAgent['API-Model'] === 'coze'){
                 response = await sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName)
-                // response = await sendMessageToCoze(message, currentAgent);
-                // response = response===''?'AI回复内容为空，请检查配置':response;
-                // removeMessage(loadingMessageId);
-                // createStreamingAIMessageElement(response);
-                // appendMessageToHistory(departmentType, agentName, 'ai', response);
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
