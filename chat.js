@@ -441,3 +441,120 @@ function removeMessage(messageId) {
         messageElement.remove();
     }
 }
+
+function handleFileUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const filePreview = document.getElementById('file-preview');
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_TYPES = [
+        'text/plain',
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'application/json',
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel.sheet.macroEnabled.12',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    
+    for (let file of files) {
+        // 检查文件大小
+        if (file.size > MAX_FILE_SIZE) {
+            alert(`文件 ${file.name} 超过5MB大小限制`);
+            continue;
+        }
+
+        // 检查文件类型
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            alert(`文件 ${file.name} 类型不支持。支持的类型：文本、PDF、JPEG、PNG、JSON、CSV、Excel`);
+            continue;
+        }
+
+        // 创建文件预览项
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.dataset.fileName = file.name;
+        
+        // 创建文件图标
+        const fileIcon = document.createElement('div');
+        fileIcon.className = 'file-icon';
+        fileIcon.textContent = getFileIcon(file.type);
+        fileItem.appendChild(fileIcon);
+
+        // 添加文件信息
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'file-info';
+        fileInfo.textContent = formatFileSize(file.size);
+        fileItem.appendChild(fileInfo);
+
+        // 添加进度条
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.style.width = '0%';
+        fileItem.appendChild(progressBar);
+
+        // 添加删除按钮
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = () => removeFile(fileItem);
+        fileItem.appendChild(removeBtn);
+
+        filePreview.appendChild(fileItem);
+
+        // 模拟上传进度
+        simulateFileUpload(fileItem, file);
+    }
+
+    // 清空文件输入框，允许重复选择相同文件
+    event.target.value = '';
+}
+
+function getFileIcon(fileType) {
+    const icons = {
+        'text/plain': '📄',
+        'application/pdf': '📄',
+        'image/jpeg': '🖼️',
+        'image/png': '🖼️',
+        'application/json': '📋',
+        'text/csv': '📄',
+        'application/vnd.ms-excel': '📄',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📄',
+        'application/vnd.ms-excel.sheet.macroEnabled.12': '📄'
+    };
+    return icons[fileType] || '📎';
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function removeFile(fileItem) {
+    fileItem.remove();
+}
+
+function simulateFileUpload(fileItem, file) {
+    const progressBar = fileItem.querySelector('.progress-bar');
+    let progress = 0;
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            // 上传完成后，可以在这里添加实际的文件上传逻辑
+            setTimeout(() => {
+                fileItem.classList.add('uploaded');
+            }, 500);
+        }
+        progressBar.style.width = `${progress}%`;
+    }, 200);
+}

@@ -27,11 +27,21 @@ function displayDepartments(departments) {
         departmentItem.className = 'department-item';
         departmentItem.innerHTML = `
             <button class="department-avatar"
-             data-department="${element.type}"
-             onclick="window.location.href='mainPage.html?department=${element.type}'">
+             data-department="${element.type}">
                 ${element.avatar}
             </button>
         `;
+        
+        // 添加点击事件处理
+        const button = departmentItem.querySelector('.department-avatar');
+        button.addEventListener('click', function() {
+            const departmentType = this.getAttribute('data-department');
+            // 保存到localStorage
+            localStorage.setItem('selectedDepartment', departmentType);
+            // 跳转到mainPage
+            window.location.href = 'mainPage.html';
+        });
+        
         departmentListContainer.appendChild(departmentItem);
     });
 }

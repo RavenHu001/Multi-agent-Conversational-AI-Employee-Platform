@@ -6,7 +6,7 @@
     <title>AI Chat</title>
     <link rel="stylesheet" href="chat.css">
     <!-- 引入Marked.js -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="lib/marked.min.js"></script>
 </head>
 <body>
     <div class="toolbar">
@@ -16,6 +16,11 @@
         <div class="chat-container">
             <div class="chat-messages"></div>
             <div class="chat-input-container">
+                <button class="upload-btn" title="上传文件" onclick="document.getElementById('file-input').click()">
+                    <img src="images/icons/download.jpg" class="upload-icon" alt="上传">
+                </button>
+                <input type="file" id="file-input" style="display:none" onchange="handleFileUpload(event)">
+                <div id="file-preview" class="file-preview"></div>
                 <textarea class="message-input" placeholder="输入消息..."></textarea>
                 <button class="send-btn">发送</button>
             </div>

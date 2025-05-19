@@ -8,16 +8,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Departments:', departments);
         displayDepartments(departments);
         
-        // 恢复上次选择
-        const savedDepartment = localStorage.getItem('selectedDepartment');
-        const savedAgent = localStorage.getItem('selectedAgent');
-        let departmentType = savedDepartment;
-        let agentName = savedAgent;
-
-        // 如果URL有参数，优先用URL参数
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('department')) departmentType = urlParams.get('department');
-        if (urlParams.get('agent')) agentName = urlParams.get('agent');
+        // 从localStorage获取保存的部门和智能体
+        const departmentType = localStorage.getItem('selectedDepartment');
+        const agentName = localStorage.getItem('selectedAgent');
 
         // 部门选择
         if (departmentType) {
@@ -33,9 +26,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                             );
                             if (agentItem) agentItem.click();
                         }
-                    }, 10);
+                    }, 100);
                 }
-            }, 10);
+            }, 100);
         }
     } catch (error) {
         console.error('Error loading agents:', error);
@@ -129,6 +122,7 @@ function displayDepartments(departments) {
             });
             
             console.log('Selected department:', element.type);
+            console.log('localstorage', localStorage.getItem('selectedAgent')+localStorage.getItem('selectedDepartment'));
         });
         
         departmentListContainer.appendChild(departmentItem);
