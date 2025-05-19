@@ -181,21 +181,35 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
     //发送流式请求
-    let response = await fetch(currentAgent['API-URL'],{
+    // const response = await fetch(currentAgent['API-URL'],{
+    //     method: 'POST',
+    //     headers: {
+    //         'Authorization': `Bearer ${currentAgent['API-Key']}`,
+    //         'Content-Type': 'application/json'
+    //     },
+    //     body: JSON.stringify({
+    //         "bot_id": currentAgent['bot-id'],
+    //         "user_id": "123456",
+    //         "stream": true,
+    //         "additional_messages": [{
+    //             "role": "user",
+    //             "content": message,
+    //             "content_type": "text"
+    //         }]
+    //     })
+    // });
+
+    const response = await fetch('http://localhost:3000/coze',{
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${currentAgent['API-Key']}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            "bot_id": currentAgent['bot-id'],
-            "user_id": "123456",
-            "stream": true,
-            "additional_messages": [{
-                "role": "user",
-                "content": message,
-                "content_type": "text"
-            }]
+            message: message,
+            model: currentAgent['API-Model'],
+            apiKey: currentAgent['API-Key'],
+            url: currentAgent['API-URL'],
+            botId: currentAgent['bot-id']
         })
     });
     if (!response.ok) {
@@ -217,7 +231,6 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
             chunk.split('\n').forEach(line => {
                 if (line.startsWith('data:')) {
                     const data = line.replace(/^data:\s*/, '');
-                    console.log(data);
                     if (data === '[DONE]') return;
                     try {
                         const json = JSON.parse(data);

@@ -141,7 +141,6 @@ app.listen(port, () => {
 
 //流式接入DeepSeek
 app.post('/deepseek', async (req, res) => {
-    console.log(req.body);
     const userMessage = req.body.message;
     const model = req.body.model;
     const apiKey = req.body.apiKey;
@@ -167,6 +166,53 @@ app.post('/deepseek', async (req, res) => {
                 { role: 'user', content: userMessage }
             ],
             stream: true
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
+    }
+    res.end();
+});
+
+//流式接入Coze
+app.post('/coze', async (req, res) => {
+    const userMessage = req.body.message;
+    const model = req.body.model;
+    const apiKey = req.body.apiKey;
+    const url = req.body.url;
+    const botId = req.body.botId;
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    const response = await fetch(url,{
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "bot_id": botId,
+            "user_id": "123456",
+            "stream": true,
+            "additional_messages": [{
+                "role": "user",
+                "content": userMessage,
+                "content_type": "text"
+            }]
         })
     });
     if (!response.ok) {
