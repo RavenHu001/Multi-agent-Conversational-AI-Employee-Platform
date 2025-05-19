@@ -180,24 +180,6 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
-    //发送流式请求
-    // const response = await fetch(currentAgent['API-URL'],{
-    //     method: 'POST',
-    //     headers: {
-    //         'Authorization': `Bearer ${currentAgent['API-Key']}`,
-    //         'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify({
-    //         "bot_id": currentAgent['bot-id'],
-    //         "user_id": "123456",
-    //         "stream": true,
-    //         "additional_messages": [{
-    //             "role": "user",
-    //             "content": message,
-    //             "content_type": "text"
-    //         }]
-    //     })
-    // });
 
     const response = await fetch('http://localhost:3000/coze',{
         method: 'POST',
@@ -539,26 +521,30 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function removeFile(fileItem) {
-    fileItem.remove();
-}
-
-function simulateFileUpload(fileItem, file) {
-    const progressBar = fileItem.querySelector('.progress-bar');
-    let progress = 0;
-    
-    const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress >= 100) {
-            progress = 100;
-            clearInterval(interval);
-            // 上传完成后，可以在这里添加实际的文件上传逻辑
-            setTimeout(() => {
-                fileItem.classList.add('uploaded');
-            }, 500);
+async function removeFile(fileItem) {
+    try {
+        const filename = fileItem.dataset.fileName;
+        if (!filename) {
+            throw new Error('无法获取文件名');
         }
-        progressBar.style.width = `${progress}%`;
-    }, 200);
+        const response = await fetch(`http://localhost:3000/delete/${filename}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('删除文件失败');
+        }
+
+        // 从UI中移除文件项
+        fileItem.remove();
+        // 从本地存储中移除文件信息
+        const fileList = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+        const updatedList = fileList.filter(file => file.filename !== filename);
+        localStorage.setItem('uploadedFiles', JSON.stringify(updatedList));
+    } catch (error) {
+        console.error('删除文件时出错:', error);
+        alert('删除文件失败: ' + error.message);
+    }
 }
 
 // 添加页面加载时恢复已上传文件的函数
@@ -569,7 +555,7 @@ function restoreUploadedFiles() {
     uploadedFiles.forEach(file => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item uploaded';
-        fileItem.dataset.fileName = file.originalname;
+        fileItem.dataset.fileName = file.filename;
         
         const fileIcon = document.createElement('div');
         fileIcon.className = 'file-icon';

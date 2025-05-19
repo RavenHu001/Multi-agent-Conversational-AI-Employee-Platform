@@ -116,6 +116,32 @@ app.post('/upload', upload.single('file'), (req, res) => {
     }
 });
 
+// 删除文件接口
+app.delete('/delete/:filename', (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join('uploads', filename);
+
+        // 检查文件是否存在
+        if (!fs.existsSync(filePath)) {
+            console.log(`[${new Date().toLocaleString()}] 删除失败: 文件不存在 - ${filename}`);
+            return res.status(404).json({ error: '文件不存在' });
+        }
+
+        // 删除文件
+        fs.unlinkSync(filePath);
+        console.log(`[${new Date().toLocaleString()}] 文件删除成功: ${filename}`);
+
+        res.json({
+            success: true,
+            message: '文件删除成功'
+        });
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 删除文件时出错:`, error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
     // 处理multer相关的错误
