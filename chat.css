@@ -328,7 +328,7 @@
     bottom: 100%;
     left: 0;
     right: 0;
-    display: flex;
+    display: none;
     flex-wrap: wrap;
     gap: 10px;
     padding: 10px;
@@ -338,6 +338,10 @@
     z-index: 1000;
     max-height: 120px;
     overflow-y: auto;
+}
+
+.file-preview.visible {
+    display: flex;
 }
 
 .file-item {

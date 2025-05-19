@@ -380,6 +380,7 @@ async function handleFileUpload(event) {
     if (!files || files.length === 0) return;
 
     const filePreview = document.getElementById('file-preview');
+    filePreview.classList.add('visible');  // 显示文件预览区域
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ALLOWED_TYPES = [
         'text/plain',
@@ -541,6 +542,12 @@ async function removeFile(fileItem) {
         const fileList = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
         const updatedList = fileList.filter(file => file.filename !== filename);
         localStorage.setItem('uploadedFiles', JSON.stringify(updatedList));
+
+        // 检查是否还有其他文件
+        const filePreview = document.getElementById('file-preview');
+        if (filePreview.children.length === 0) {
+            filePreview.classList.remove('visible');
+        }
     } catch (error) {
         console.error('删除文件时出错:', error);
         alert('删除文件失败: ' + error.message);
@@ -551,6 +558,10 @@ async function removeFile(fileItem) {
 function restoreUploadedFiles() {
     const filePreview = document.getElementById('file-preview');
     const uploadedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    
+    if (uploadedFiles.length > 0) {
+        filePreview.classList.add('visible');  // 如果有文件，显示预览区域
+    }
     
     uploadedFiles.forEach(file => {
         const fileItem = document.createElement('div');
@@ -583,7 +594,7 @@ function restoreUploadedFiles() {
             if (index > -1) {
                 files.splice(index, 1);
                 localStorage.setItem('uploadedFiles', JSON.stringify(files));
-    }
+            }
         };
         fileItem.appendChild(removeBtn);
 
