@@ -339,7 +339,7 @@ async function singleFileToCoze(file,url,apiKey,botId){
         if(data.code!==0){
             throw new Error(`API request failed: ${data.message}`);
         }
-        return data.data.file_id;
+        return data.data.id;
     }catch(error){
         console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
         throw error;
