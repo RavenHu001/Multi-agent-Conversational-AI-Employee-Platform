@@ -52,7 +52,6 @@ const fileFilter = (req, file, cb) => {
     
     // 定义允许上传的文件类型列表
     const allowedTypes = [
-        'text/plain',          // 文本文件
         'application/pdf',     // PDF文件
         'image/jpeg',         // JPEG图片
         'image/png',          // PNG图片
@@ -277,6 +276,11 @@ app.post('/coze/upload',async(req,res)=>{
         }
     };
     content+="]";
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
     const response = await fetch(url,{
         method:'POST',
         headers:{
