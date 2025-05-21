@@ -171,6 +171,11 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
 }
 //流式，接入扣子智能体的函数
 async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName){
+    //检测文件夹中是否存在文件
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    if(files.length>0){
+        return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
+    }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
@@ -193,44 +198,7 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
         throw new Error(`API request failed: ${response.status}`);
     }
 
-    // 逐步读取流式内容
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let fullText = '';
-    let done = false;
-    const chatMessages = document.querySelector('.chat-messages');
-    while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            // 解析SSE格式（如以data: 开头的行）
-            chunk.split('\n').forEach(line => {
-                if (line.startsWith('data:')) {
-                    const data = line.replace(/^data:\s*/, '');
-                    if (data === '[DONE]') return;
-                    try {
-                        const json = JSON.parse(data);
-                        let delta='';
-                        if(json.type){
-                            if(json.type==="answer"){
-                                delta=json.content;
-                            }else if(json.type==="follow_up"){
-                                delta='<br>'+json.content;
-                            }
-                        }
-                        fullText += delta;
-                        contentDiv.innerHTML = marked.parse(fullText);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    } catch (e) {
-                        // 忽略解析失败
-                    }
-                }
-            });
-        }     
-    }
-    appendMessageToHistory(departmentType, agentName, 'ai', fullText);
-    return fullText;
+    return processStreamingResponse(response, contentDiv, departmentType, agentName);
 }
 //流式接入coze，带文件（当前文件源直接是本地暂存的文件）
 async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName){
@@ -253,7 +221,11 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
             botId:currentAgent['bot-id']
         })
     })
-    
+    return processStreamingResponse(response, contentDiv, departmentType, agentName);
+}
+// 保留其他辅助函数
+//coze流式读取通用函数
+async function processStreamingResponse(response, contentDiv, departmentType, agentName){
     // 逐步读取流式内容
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
@@ -293,9 +265,6 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
     appendMessageToHistory(departmentType, agentName, 'ai', fullText);
     return fullText;
 }
-// 保留其他辅助函数
-//coze流式读取通用函数
-
 // 创建消息内容的函数
 function createMessageContent(message, type) {
     //让AI的回复以markdown渲染

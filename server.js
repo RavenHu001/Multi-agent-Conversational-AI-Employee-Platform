@@ -264,12 +264,7 @@ app.post('/coze/upload',async(req,res)=>{
     const apiKey = req.body.apiKey;
     const botId = req.body.botId;
     const message = req.body.message;
-    try{
-        const fileIds = await multipleFilesToCoze(files,url);
-    }catch(error){
-        console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
-        throw error;
-    }
+    const fileIds = await multipleFilesToCoze(files,url,apiKey,botId);
     let content = "";
     content+="[{\"type\":\"file\",\"file_id\":\""+fileId+"\"}";
     for(let i=0;i<fileIds.length;i++){
@@ -311,21 +306,32 @@ app.post('/coze/upload',async(req,res)=>{
         const chunk = decoder.decode(value);
         res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
     }
+    //删除上传的文件
+    for(let i=0;i<files.length;i++){
+        fs.unlinkSync(path.join('uploads', files[i].filename));
+    }
     res.end();
 });
 //发送单个文件至coze并获取文件id
-async function singleFileToCoze(file,url){
+async function singleFileToCoze(file,url,apiKey,botId){
     const formData = new FormData();
-    formData.append('file',fs.createReadStream(file));
+    //读取文件实际路径
+    const filePath = path.join('uploads', file.filename);
+    formData.append('file',fs.createReadStream(filePath));
     try{
         const response = await fetch(url,{
             method:'POST',
+            headers:{
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'multipart/form-data'
+            },
             body:formData
         });
         if(!response.ok){
             throw new Error(`API request failed: ${response.status}`);
         }
         const data = await response.json();
+        console.log(data);
         if(data.code!==0){
             throw new Error(`API request failed: ${data.message}`);
         }
@@ -336,17 +342,12 @@ async function singleFileToCoze(file,url){
     }
 }
 //发送多个文件至coze并获取文件id
-async function multipleFilesToCoze(files,url){
+async function multipleFilesToCoze(files,url,apiKey,botId){
     const fileIds = [];
 
-    try{
-        for(const file of files){
-            const fileId = await singleFileToCoze(file,url);
-            fileIds.push(fileId);
-        }
-        return fileIds;
-    }catch(error){
-        console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
-        throw error;
+    for(const file of files){
+        const fileId = await singleFileToCoze(file,url,apiKey,botId);
+        fileIds.push(fileId);
     }
+    return fileIds;
 }
