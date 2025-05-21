@@ -264,7 +264,7 @@ app.post('/coze/upload',async(req,res)=>{
     const apiKey = req.body.apiKey;
     const botId = req.body.botId;
     const message = req.body.message;
-    const fileIds = await multipleFilesToCoze(files,url,apiKey,botId);
+    const fileIds = await multipleFilesToCoze(files,apiKey,botId);
     let content = "";
     content+="[{\"type\":\"file\",\"file_id\":\""+fileId+"\"}";
     for(let i=0;i<fileIds.length;i++){
@@ -325,7 +325,7 @@ async function singleFileToCoze(file,url,apiKey,botId){
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'multipart/form-data'
             },
-            body:formData
+            form:formData
         });
         if(!response.ok){
             throw new Error(`API request failed: ${response.status}`);
@@ -342,9 +342,9 @@ async function singleFileToCoze(file,url,apiKey,botId){
     }
 }
 //发送多个文件至coze并获取文件id
-async function multipleFilesToCoze(files,url,apiKey,botId){
+async function multipleFilesToCoze(files,apiKey,botId){
     const fileIds = [];
-
+    const url = "https://api.coze.ai/v1/file/upload";
     for(const file of files){
         const fileId = await singleFileToCoze(file,url,apiKey,botId);
         fileIds.push(fileId);
