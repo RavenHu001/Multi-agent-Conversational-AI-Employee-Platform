@@ -416,7 +416,9 @@ async function handleFileUpload(event) {
         'text/csv',
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-excel.sheet.macroEnabled.12'
+        'application/vnd.ms-excel.sheet.macroEnabled.12',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
     
     for (let file of files) {
@@ -428,7 +430,7 @@ async function handleFileUpload(event) {
 
         // 检查文件类型
         if (!ALLOWED_TYPES.includes(file.type)) {
-            alert(`文件 ${file.name} 类型不支持。支持的类型：PDF、JPEG、PNG、JSON、CSV、Excel`);
+            alert(`文件 ${file.name} 类型不支持。支持的类型：PDF、JPEG、PNG、JSON、CSV、Excel、Word`);
             continue;
         }
 
@@ -532,7 +534,9 @@ function getFileIcon(fileType) {
         'text/csv': '📄',
         'application/vnd.ms-excel': '📄',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📄',
-        'application/vnd.ms-excel.sheet.macroEnabled.12': '📄'
+        'application/vnd.ms-excel.sheet.macroEnabled.12': '📄',
+        'application/msword': '📝',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📝'
     };
     return icons[fileType] || '📎';
 }

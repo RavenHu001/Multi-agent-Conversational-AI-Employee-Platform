@@ -59,7 +59,9 @@ const fileFilter = (req, file, cb) => {
         'text/csv',           // CSV文件
         'application/vnd.ms-excel',  // Excel文件(.xls)
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  // Excel文件(.xlsx)
-        'application/vnd.ms-excel.sheet.macroEnabled.12'  // 启用宏的Excel文件(.xlsm)
+        'application/vnd.ms-excel.sheet.macroEnabled.12',  // 启用宏的Excel文件(.xlsm)
+        'application/msword',  // Word文件(.doc)
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'  // Word文件(.docx)
     ];
 
     // 检查文件类型是否在允许列表中
@@ -329,11 +331,12 @@ async function singleFileToCoze(file,url,apiKey,botId){
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'multipart/form-data'
             },
-            form:formData
+            body:formData,
         });
         if(!response.ok){
             throw new Error(`API request failed: ${response.status}`);
         }
+        
         const data = await response.json();
         console.log(data);
         if(data.code!==0){
