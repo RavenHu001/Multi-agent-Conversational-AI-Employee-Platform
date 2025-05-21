@@ -257,3 +257,96 @@ app.post('/coze', async (req, res) => {
     }
     res.end();
 });
+//带文件对话，先将文件上传至扣子获得id，再将id和message发送至coze，流式接入
+app.post('/coze/upload',async(req,res)=>{
+    const files = req.body.files;
+    const url = req.body.url;
+    const apiKey = req.body.apiKey;
+    const botId = req.body.botId;
+    const message = req.body.message;
+    try{
+        const fileIds = await multipleFilesToCoze(files,url);
+    }catch(error){
+        console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
+        throw error;
+    }
+    let content = "";
+    content+="[{\"type\":\"file\",\"file_id\":\""+fileId+"\"}";
+    for(let i=0;i<fileIds.length;i++){
+        if(files[i].mimetype.startsWith("image/")){
+            content+=",{\"type\":\"image\",\"file_id\":\""+fileIds[i]+"\"}";
+        }else if(files[i].mimetype.startsWith("audio/")){
+            content+=",{\"type\":\"audio\",\"file_id\":\""+fileIds[i]+"\"}";
+        }else{
+            content+=",{\"type\":\"file\",\"file_id\":\""+fileIds[i]+"\"}";
+        }
+    };
+    content+="]";
+    const response = await fetch(url,{
+        method:'POST',
+        headers:{
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body:JSON.stringify({
+            "bot_id": botId,
+            "user_id": "123456",
+            "stream": true,
+            "additional_messages": [{
+                "role": "user",
+                "content": userMessage,
+                "content_type": "object_string"
+            }]
+        })
+    });
+    if(!response.ok){
+        throw new Error(`API request failed: ${response.status}`);
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
+    }
+    res.end();
+});
+//发送单个文件至coze并获取文件id
+async function singleFileToCoze(file,url){
+    const formData = new FormData();
+    formData.append('file',fs.createReadStream(file));
+    try{
+        const response = await fetch(url,{
+            method:'POST',
+            body:formData
+        });
+        if(!response.ok){
+            throw new Error(`API request failed: ${response.status}`);
+        }
+        const data = await response.json();
+        if(data.code!==0){
+            throw new Error(`API request failed: ${data.message}`);
+        }
+        return data.data.file_id;
+    }catch(error){
+        console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
+        throw error;
+    }
+}
+//发送多个文件至coze并获取文件id
+async function multipleFilesToCoze(files,url){
+    const fileIds = [];
+
+    try{
+        for(const file of files){
+            const fileId = await singleFileToCoze(file,url);
+            fileIds.push(fileId);
+        }
+        return fileIds;
+    }catch(error){
+        console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
+        throw error;
+    }
+}
