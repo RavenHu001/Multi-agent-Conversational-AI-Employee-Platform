@@ -3,8 +3,8 @@ const express = require('express');    // Express框架，用于创建Web服务�
 const multer = require('multer');      // Multer中间件，用于处理文件上传
 const path = require('path');          // Node.js路径模块，用于处理文件路径
 const cors = require('cors');          // CORS中间件，用于处理跨域请求
-//const FormData = require('form-data'); 
-const fs = require('fs');              // Node.js文件系统模块，用于文件操作s
+const fs = require('fs');              // Node.js文件系统模块，用于文件操作
+const FormData = require('form-data'); //安装form-data包，用于处理文件发送
 const { type } = require('os');
 const { json } = require('stream/consumers');
 
@@ -94,6 +94,11 @@ app.post('/upload', upload.single('file'), (req, res) => {
             console.log(`[${new Date().toLocaleString()}] 上传失败: 没有文件被上传`);
             return res.status(400).json({ error: '没有文件被上传' });
         }
+        //用来查看和确认传递进来的文件的代码
+        // console.log(req.file);
+        // const formData = new FormData();
+        // formData.append('file',req.file);
+        // console.log(formData);
 
         // 记录上传成功的文件信息
         console.log(`[${new Date().toLocaleString()}] 文件上传成功:`);
@@ -263,14 +268,14 @@ app.post('/coze', async (req, res) => {
 });
 //带文件对话，先将文件上传至扣子获得id，再将id和message发送至coze，流式接入
 app.post('/coze/upload',async(req,res)=>{
-    const files = req.body.files;
+    const filesInf  = req.body.files;
     const url = req.body.url;
     const apiKey = req.body.apiKey;
     const botId = req.body.botId;
     const message = req.body.message;
     let fileIds;
     try{
-        fileIds = await multipleFilesToCoze(files,apiKey);
+        fileIds = await multipleFilesToCoze(filesInf,apiKey);
     }catch(error){
         console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
         return res.status(500).json({ error: error.message });
@@ -340,9 +345,15 @@ app.post('/coze/upload',async(req,res)=>{
     res.end();
 });
 //发送单个文件至coze并获取文件id
-async function singleFileToCoze(file,url,apiKey){
+async function singleFileToCoze(fileInf,url,apiKey){
     try{
         //需要获取文件对象，随后将文件对象放入formData中以生成报文
+        const filePath = path.join('uploads', fileInf.filename);
+        const file = fs.readFileSync(filePath);//文件确实抓出来了
+        console.log(file instanceof Buffer);
+        const formData = new FormData();
+        formData.append('file',file);//但这里似乎要么是把文件以字符串塞进去了，要么是文件流
+        console.log(formData);
 
         const response = await fetch(url,{
             method:'POST',
@@ -369,12 +380,12 @@ async function singleFileToCoze(file,url,apiKey){
     }
 }
 //发送多个文件至coze并获取文件id
-async function multipleFilesToCoze(files,apiKey){
+async function multipleFilesToCoze(filesInf,apiKey){
     const fileIds = [];
     const url = "https://api.coze.cn/v1/files/upload";
-    for(const file of files){
-        console.log("正在处理文件："+file.filename)
-        const fileId = await singleFileToCoze(file,url,apiKey);
+    for(const fileInf of filesInf){
+        console.log("正在处理文件："+fileInf.filename)
+        const fileId = await singleFileToCoze(fileInf,url,apiKey);
         fileIds.push(fileId);
     }
     return fileIds;

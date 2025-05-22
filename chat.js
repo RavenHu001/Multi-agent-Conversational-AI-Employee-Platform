@@ -512,7 +512,7 @@ async function handleFileUpload(event) {
                     const response = JSON.parse(xhr.responseText);
                     if (response.success) {
                         fileItem.classList.add('uploaded');
-                        // 保存上传成功的文件信息到本地存储
+                        // 保存上传成功的文件信息到本地存储,保存的只是文件信息，没有文件内容
                         const uploadedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
                         uploadedFiles.push({
                             filename: response.file.filename,
