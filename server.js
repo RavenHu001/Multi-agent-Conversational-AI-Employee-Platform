@@ -325,6 +325,10 @@ app.post('/coze/upload',async(req,res)=>{
             res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
         }
 
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 处理请求时出错:`, error);
+        throw error;
+    }finally{
         //删除上传的文件
         for(const file of files){
             const filePath = path.join('uploads', file.filename);
@@ -332,9 +336,6 @@ app.post('/coze/upload',async(req,res)=>{
             fs.unlinkSync(filePath);
             console.log(`[${new Date().toLocaleString()}] 文件删除成功: ${filename}`);
         }
-    } catch (error) {
-        console.error(`[${new Date().toLocaleString()}] 处理请求时出错:`, error);
-        throw error;
     }
     res.end();
 });
