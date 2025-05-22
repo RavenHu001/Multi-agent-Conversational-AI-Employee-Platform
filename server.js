@@ -341,28 +341,7 @@ app.post('/coze/upload',async(req,res)=>{
 //发送单个文件至coze并获取文件id
 async function singleFileToCoze(file,url,apiKey){
     try{
-        // // //设置文件路径
-        // const filePath = "/uploads/"+file.filename;
-        // // console.log(filePath);
-        // // //设置formData
-        // // const formData = new FormData();
-        // // const fileStream = fs.createReadStream(filePath);
-        // // formData.append('file',fileStream,{
-        // //     filename:file.originalname,
-        // //     contentType:file.mimetype
-        // // });
-        // const formData = new FormData();
-        // formData.append('file',filePath);
-        // console.log(formData);
-        // // console.log(formData.getHeaders());
-        const filePath = "./uploads/"+file.filename;
-        console.log(filePath);
-        const fileContent = fs.readFileSync(filePath);
-        console.log(fileContent);
-        //基于文件路径读取文件并生成formData
-        const formData = new FormData();
-        formData.append('file',fileContent);
-        console.log(formData);
+        //需要获取文件对象，随后将文件对象放入formData中以生成报文
 
         const response = await fetch(url,{
             method:'POST',
