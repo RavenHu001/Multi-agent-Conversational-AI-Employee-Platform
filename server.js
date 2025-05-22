@@ -3,8 +3,10 @@ const express = require('express');    // Express框架，用于创建Web服务�
 const multer = require('multer');      // Multer中间件，用于处理文件上传
 const path = require('path');          // Node.js路径模块，用于处理文件路径
 const cors = require('cors');          // CORS中间件，用于处理跨域请求
+//const FormData = require('form-data'); 
 const fs = require('fs');              // Node.js文件系统模块，用于文件操作s
 const { type } = require('os');
+const { json } = require('stream/consumers');
 
 // 创建Express应用实例
 const app = express();
@@ -266,16 +268,16 @@ app.post('/coze/upload',async(req,res)=>{
     const apiKey = req.body.apiKey;
     const botId = req.body.botId;
     const message = req.body.message;
-
+    let fileIds;
     try{
-        const fileIds = await multipleFilesToCoze(files,apiKey);
+        fileIds = await multipleFilesToCoze(files,apiKey);
     }catch(error){
         console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
         return res.status(500).json({ error: error.message });
     }
 
     let content = "";
-    content+="[{\"type\":\"file\",\"file_id\":\""+fileId+"\"}";
+    content+="[{\"type\":\"text\",\"text\":\""+message+"\"}";
     for(let i=0;i<fileIds.length;i++){
         if(files[i].mimetype.startsWith("image/")){
             content+=",{\"type\":\"image\",\"file_id\":\""+fileIds[i]+"\"}";
@@ -286,60 +288,88 @@ app.post('/coze/upload',async(req,res)=>{
         }
     };
     content+="]";
-    
+    // content = "[{\"type\":\"text\",\"text\":\""+message+"\"},{\"type\":\"file\",\"file_id\":\""+"7506787222818422838"+"\"}]";
     res.set({
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive'
     });
-    const response = await fetch(url,{
-        method:'POST',
-        headers:{
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body:JSON.stringify({
-            "bot_id": botId,
-            "user_id": "123456",
-            "stream": true,
-            "additional_messages": [{
-                "role": "user",
-                "content": userMessage,
-                "content_type": "object_string"
-            }]
-        })
-    });
-    if(!response.ok){
-        throw new Error(`API request failed: ${response.status}`);
-    }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
+    try {
+        const response = await fetch(url,{
+            method:'POST',
+            headers:{
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body:JSON.stringify({
+                "bot_id": botId,
+                "user_id": "123456",
+                "stream": true,
+                "additional_messages": [{
+                    "role": "user",
+                    "content": content,
+                    "content_type": "object_string"
+                }]
+            })
+        });
+        if(!response.ok){
+            throw new Error(`API request failed: ${response.status}`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
-    }
-    //删除上传的文件
-    for(let i=0;i<files.length;i++){
-        fs.unlinkSync(path.join('uploads', files[i].filename));
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
+        }
+
+        //删除上传的文件
+        for(const file of files){
+            const filePath = path.join('uploads', file.filename);
+            // 删除文件
+            fs.unlinkSync(filePath);
+            console.log(`[${new Date().toLocaleString()}] 文件删除成功: ${filename}`);
+        }
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 处理请求时出错:`, error);
+        throw error;
     }
     res.end();
 });
 //发送单个文件至coze并获取文件id
 async function singleFileToCoze(file,url,apiKey){
-    const formData = new FormData();
-    formData.append('file',file);
-    console.log(formData);
-    console.log(file);
-
     try{
+        // // //设置文件路径
+        // const filePath = "/uploads/"+file.filename;
+        // // console.log(filePath);
+        // // //设置formData
+        // // const formData = new FormData();
+        // // const fileStream = fs.createReadStream(filePath);
+        // // formData.append('file',fileStream,{
+        // //     filename:file.originalname,
+        // //     contentType:file.mimetype
+        // // });
+        // const formData = new FormData();
+        // formData.append('file',filePath);
+        // console.log(formData);
+        // // console.log(formData.getHeaders());
+        const filePath = "./uploads/"+file.filename;
+        console.log(filePath);
+        const fileContent = fs.readFileSync(filePath);
+        console.log(fileContent);
+        //基于文件路径读取文件并生成formData
+        const formData = new FormData();
+        formData.append('file',fileContent);
+        console.log(formData);
+
         const response = await fetch(url,{
             method:'POST',
             headers:{
                 'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'multipart/form-data'
+                // ...formData.getHeaders() // 自动添加 FormData 所需的 Content-Type 等头信息
+                'Content-Type': "multipart/form-data" 
             },
             body:formData
         });
@@ -352,7 +382,7 @@ async function singleFileToCoze(file,url,apiKey){
         if(data.code!==0){
             throw new Error(`API request failed: ${data.message}`);
         }
-        return data.data.id;
+        return data.data.id;//返回回复报文提供的文件id
     }catch(error){
         console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
         throw error;
@@ -363,6 +393,7 @@ async function multipleFilesToCoze(files,apiKey){
     const fileIds = [];
     const url = "https://api.coze.cn/v1/files/upload";
     for(const file of files){
+        console.log("正在处理文件："+file.filename)
         const fileId = await singleFileToCoze(file,url,apiKey);
         fileIds.push(fileId);
     }

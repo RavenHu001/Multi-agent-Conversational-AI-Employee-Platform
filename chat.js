@@ -229,7 +229,20 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
                 botId:currentAgent['bot-id']
             })
         })
-        return processStreamingResponse(response, contentDiv, departmentType, agentName);
+        const result = await processStreamingResponse(response, contentDiv, departmentType, agentName);
+        
+        // // 清除已上传的文件
+        // // 1. 清除本地存储
+        // localStorage.removeItem('uploadedFiles');
+        
+        // // 2. 清除文件预览
+        // const filePreview = document.getElementById('file-preview');
+        // if (filePreview) {
+        //     filePreview.innerHTML = '';
+        //     filePreview.classList.remove('visible');
+        // }
+        
+        return result;
     }catch(error){    
         throw error;
     }
