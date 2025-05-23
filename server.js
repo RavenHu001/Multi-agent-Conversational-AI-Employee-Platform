@@ -262,6 +262,7 @@ app.post('/coze', async (req, res) => {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value);
+        console.log("chunk: ",chunk);
         res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
     }
     res.end();
@@ -412,6 +413,7 @@ app.post('/coze/create_session',async(req,res)=>{
     const data = await response.json();
     console.log(data);
     res.json(data);
+    res.end();
 });
 //扣子基于会话id发起对话，流式
 app.post('/coze/conversation', async (req, res) => {
@@ -455,6 +457,7 @@ app.post('/coze/conversation', async (req, res) => {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value);
+        console.log("chunk: ",chunk);
         res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
     }
     res.end();

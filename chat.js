@@ -57,8 +57,6 @@ async function sendMessage() {
     const urlParams = new URLSearchParams(window.location.search);
     const agentName = urlParams.get('agent');
     const departmentType = urlParams.get('department');
-    // console.log("current agentName: ",agentName);
-    // console.log("current departmentType: ",departmentType);
     
     if (!agentName || !departmentType) return;
     
@@ -81,7 +79,30 @@ async function sendMessage() {
                 // 流式渲染
                 response = await sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName);
             } else if(currentAgent['API-Model'] === 'coze'){
-                response = await sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName)
+                // 检查是否有当前会话ID
+                const currentKey = `currentConversation_${departmentType}_${agentName}`;
+                const conversationId = localStorage.getItem(currentKey);
+                
+                if (conversationId) {
+                    // 如果有会话ID，使用带会话的API调用
+                    response = await sendMessageToCozeWithConversation(
+                        message, 
+                        currentAgent, 
+                        loadingMessageId, 
+                        departmentType, 
+                        agentName, 
+                        conversationId
+                    );
+                } else {
+                    // 如果没有会话ID，使用普通API调用
+                    response = await sendMessageToCoze(
+                        message, 
+                        currentAgent, 
+                        loadingMessageId, 
+                        departmentType, 
+                        agentName
+                    );
+                }
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
@@ -249,6 +270,36 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
         throw error;
     }
 }
+//流式接入扣子，带会话ID
+async function sendMessageToCozeWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId){
+    // 移除加载消息
+    removeMessage(loadingMessageId);
+    // 使用独立方法插入AI消息div
+    const { messageElement, contentDiv } = createStreamingAIMessageElement();
+
+    try{
+        const response = await fetch('http://localhost:3000/coze/conversation',{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                model: currentAgent['API-Model'],
+                apiKey: currentAgent['API-Key'],
+                url: currentAgent['API-URL'],
+                botId: currentAgent['bot-id'],
+                conversationId: conversationId
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+        return processStreamingResponse(response, contentDiv, departmentType, agentName);
+    }catch(error){
+        throw error;
+    }
+}
 // 保留其他辅助函数
 //coze流式读取通用函数
 async function processStreamingResponse(response, contentDiv, departmentType, agentName){
@@ -280,7 +331,6 @@ async function processStreamingResponse(response, contentDiv, departmentType, ag
                         }
                         fullText += delta;
                         contentDiv.innerHTML = marked.parse(fullText);
-                        console.log("fullText: ",fullText);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     } catch (e) {
                         // 忽略解析失败

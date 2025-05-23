@@ -205,23 +205,42 @@ window.addMessageToChat = function(message, type, messageId = null) {
     
     // 如果不是加载消息，且不是从历史记录加载的消息，才保存到当前会话
     if (!messageId && currentConversationId && !window.isLoadingHistory) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const departmentType = urlParams.get('department');
-        const agentName = urlParams.get('agent');
-        
-        if (departmentType && agentName) {
-            const conversations = getConversations(departmentType, agentName);
-            const conversation = conversations.find(c => c.id === currentConversationId);
-            if (conversation) {
-                conversation.messages.push({
-                    type,
-                    content: message
-                });
-                const key = `conversations_${departmentType}_${agentName}`;
-                localStorage.setItem(key, JSON.stringify(conversations));
-            }
+        saveMessageToConversation(message, type);
+    }
+};
+
+// 保存消息到当前会话
+function saveMessageToConversation(message, type) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const departmentType = urlParams.get('department');
+    const agentName = urlParams.get('agent');
+    
+    if (departmentType && agentName) {
+        const conversations = getConversations(departmentType, agentName);
+        const conversation = conversations.find(c => c.id === currentConversationId);
+        if (conversation) {
+            conversation.messages.push({
+                type,
+                content: message
+            });
+            const key = `conversations_${departmentType}_${agentName}`;
+            localStorage.setItem(key, JSON.stringify(conversations));
         }
     }
+}
+
+// 修改processStreamingResponse函数，确保AI回复被保存
+const originalProcessStreamingResponse = window.processStreamingResponse;
+window.processStreamingResponse = async function(response, contentDiv, departmentType, agentName) {
+    // 调用原始函数
+    const fullText = await originalProcessStreamingResponse(response, contentDiv, departmentType, agentName);
+    
+    // 保存AI回复到当前会话
+    if (currentConversationId) {
+        saveMessageToConversation(fullText, 'ai');
+    }
+    
+    return fullText;
 };
 
 // 页面加载时初始化
