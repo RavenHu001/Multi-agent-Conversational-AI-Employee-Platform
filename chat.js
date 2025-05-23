@@ -176,10 +176,10 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
 //流式，接入扣子智能体的函数
 async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName){
     //检测文件夹中是否存在文件
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
-    if(files.length>0){
-        return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
-    }
+    // const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    // if(files.length>0){
+    //     return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
+    // }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
@@ -207,7 +207,7 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
         throw error;
     }
 }
-//流式接入coze，带文件（当前文件源直接是本地暂存的文件）
+//流式接入coze，带文件（当前文件源直接是本地暂存的文件），这个方法暂时用不了，不知道怎么让扣子接收文件
 async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName){
     // 移除加载消息
     removeMessage(loadingMessageId);
@@ -231,16 +231,16 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
         })
         const result = await processStreamingResponse(response, contentDiv, departmentType, agentName);
         
-        // // 清除已上传的文件
-        // // 1. 清除本地存储
-        // localStorage.removeItem('uploadedFiles');
+        // 清除已上传的文件
+        // 1. 清除本地存储
+        localStorage.removeItem('uploadedFiles');
         
-        // // 2. 清除文件预览
-        // const filePreview = document.getElementById('file-preview');
-        // if (filePreview) {
-        //     filePreview.innerHTML = '';
-        //     filePreview.classList.remove('visible');
-        // }
+        // 2. 清除文件预览
+        const filePreview = document.getElementById('file-preview');
+        if (filePreview) {
+            filePreview.innerHTML = '';
+            filePreview.classList.remove('visible');
+        }
         
         return result;
     }catch(error){    
