@@ -15,11 +15,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const urlParams = new URLSearchParams(window.location.search);
         const departmentType = urlParams.get('department');
         const agentName = urlParams.get('agent');
-        // 新建会话按钮清空当前聊天记录
-        const newChatBtn = document.querySelector('.new-chat-btn');
-        if (newChatBtn) {
-            newChatBtn.addEventListener('click', () => clearCurrentChatHistory(agentName,departmentType));
-        }
+        // // 新建会话按钮清空当前聊天记录
+        // const newChatBtn = document.querySelector('.new-chat-btn');
+        // if (newChatBtn) {
+        //     newChatBtn.addEventListener('click', () => clearCurrentChatHistory(agentName,departmentType));
+        // }
 
 
         if (departmentType && agentName) {
@@ -408,6 +408,7 @@ function loadChatHistoryToUI(department, agent) {
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
 //清空当前会话历史记录的函数
 function clearCurrentChatHistory(agentName,departmentType) {
     // 清空本地历史

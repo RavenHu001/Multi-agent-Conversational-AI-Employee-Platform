@@ -390,3 +390,26 @@ async function multipleFilesToCoze(filesInf,apiKey){
     }
     return fileIds;
 }
+
+//coze发起会话
+app.post('/coze/create_session',async(req,res)=>{
+    const url = req.body.url;
+    const apiKey = req.body.apiKey;
+    const botId = req.body.botId;
+    const response = await fetch(url,{
+        method:'POST',
+        headers:{
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body:JSON.stringify({
+            "bot_id": botId
+        })
+    });
+    if(!response.ok){
+        throw new Error(`API request failed: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log(data);
+    res.json(data);
+});
