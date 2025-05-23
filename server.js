@@ -413,3 +413,49 @@ app.post('/coze/create_session',async(req,res)=>{
     console.log(data);
     res.json(data);
 });
+//扣子基于会话id发起对话，流式
+app.post('/coze/conversation', async (req, res) => {
+    const userMessage = req.body.message;
+    const apiKey = req.body.apiKey;
+    const url = req.body.url;
+    const botId = req.body.botId;
+    const conversationId = req.body.conversationId;
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    const response = await fetch(url,{
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "bot_id": botId,
+            "user_id": "123456",
+            "stream": true,
+            "additional_messages": [{
+                "role": "user",
+                "content": userMessage,
+                "content_type": "text"
+            }]
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        res.write(chunk); // 或格式化为 SSE 格式：res.write(`data: ${chunk}\n\n`);
+    }
+    res.end();
+});

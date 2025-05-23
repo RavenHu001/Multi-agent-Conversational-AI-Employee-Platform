@@ -57,6 +57,8 @@ async function sendMessage() {
     const urlParams = new URLSearchParams(window.location.search);
     const agentName = urlParams.get('agent');
     const departmentType = urlParams.get('department');
+    // console.log("current agentName: ",agentName);
+    // console.log("current departmentType: ",departmentType);
     
     if (!agentName || !departmentType) return;
     
