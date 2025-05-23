@@ -2,17 +2,38 @@
 let currentConversationId = null;
 
 // 生成唯一的会话ID
-function generateConversationId() {
-    return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+async function generateConversationId(currentAgent) {
+    //调用后端接口在服务器创建会话并返回会话id
+    const response = await fetch('http://localhost:3000/coze/create_session',{
+        method:'POST',
+        headers:{
+            'Content-Type': 'application/json'
+        },
+        body:JSON.stringify({
+            url: currentAgent['API-URL'],
+            apiKey: currentAgent['API-Key'],
+            botId: currentAgent['bot-id']
+        })
+    });
+    if(!response.ok){
+        throw new Error(`API request failed: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data.id;
+    // return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 // 创建新会话
-function createNewConversation() {
-    const conversationId = generateConversationId();
+async function createNewConversation() {
     const urlParams = new URLSearchParams(window.location.search);
     const departmentType = urlParams.get('department');
     const agentName = urlParams.get('agent');
-    
+
+    //获取当前智能体的具体信息
+    const agents = await loadConfig('agents.json');
+    const currentAgent = agents.find(agent => agent.name === agentName);
+    //获取会话id
+    const conversationId = generateConversationId(currentAgent);
     // 创建会话数据
     const conversation = {
         id: conversationId,
