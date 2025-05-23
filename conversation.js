@@ -10,7 +10,7 @@ async function generateConversationId(currentAgent) {
             'Content-Type': 'application/json'
         },
         body:JSON.stringify({
-            url: currentAgent['API-URL'],
+            url: "https://api.coze.cn/v1/conversation/create",
             apiKey: currentAgent['API-Key'],
             botId: currentAgent['bot-id']
         })
