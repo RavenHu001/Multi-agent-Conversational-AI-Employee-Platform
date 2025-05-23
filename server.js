@@ -426,7 +426,7 @@ app.post('/coze/conversation', async (req, res) => {
         'Connection': 'keep-alive'
     });
 
-    const response = await fetch(url,{
+    const response = await fetch(url+"?conversation_id="+conversationId,{
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,

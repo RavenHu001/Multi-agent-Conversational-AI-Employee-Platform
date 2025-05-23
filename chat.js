@@ -280,6 +280,7 @@ async function processStreamingResponse(response, contentDiv, departmentType, ag
                         }
                         fullText += delta;
                         contentDiv.innerHTML = marked.parse(fullText);
+                        console.log("fullText: ",fullText);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     } catch (e) {
                         // 忽略解析失败

@@ -125,6 +125,7 @@ function switchToConversation(department, agent, conversationId) {
     localStorage.setItem(currentKey, conversationId);
     console.log('currentKey',currentKey);
     console.log('currentConversationId',localStorage.getItem(currentKey));
+    
     // 更新UI选中状态
     document.querySelectorAll('.conversation-item').forEach(item => {
         item.classList.toggle('active', item.dataset.conversationId === conversationId);
@@ -134,9 +135,13 @@ function switchToConversation(department, agent, conversationId) {
     const chatMessages = document.querySelector('.chat-messages');
     chatMessages.innerHTML = '';
     
+    // 设置加载历史标记
+    window.isLoadingHistory = true;
     conversation.messages.forEach(message => {
         addMessageToChat(message.content, message.type);
     });
+    // 清除加载历史标记
+    window.isLoadingHistory = false;
 }
 
 // 删除会话
@@ -198,8 +203,8 @@ window.addMessageToChat = function(message, type, messageId = null) {
     // 调用原始函数
     originalAddMessageToChat(message, type, messageId);
     
-    // 如果不是加载消息，保存到当前会话
-    if (!messageId && currentConversationId) {
+    // 如果不是加载消息，且不是从历史记录加载的消息，才保存到当前会话
+    if (!messageId && currentConversationId && !window.isLoadingHistory) {
         const urlParams = new URLSearchParams(window.location.search);
         const departmentType = urlParams.get('department');
         const agentName = urlParams.get('agent');
