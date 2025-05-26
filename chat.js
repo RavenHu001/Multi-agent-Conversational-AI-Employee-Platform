@@ -145,51 +145,51 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
 
     try{
         const response = await fetch('http://localhost:3000/deepseek', {//需要让这里能自动获取后端服务器的根目录
-            method: 'POST',
-            headers: {
+        method: 'POST',
+        headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        },
+        body: JSON.stringify({
                 message: message,
-                model: currentAgent['API-Model'],
+            model: currentAgent['API-Model'],
                 apiKey: currentAgent['API-Key'],
                 url: currentAgent['API-URL']
-            })
-        });
+        })
+    });
 
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-        }
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
 
-        // 逐步读取流式内容
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let fullText = '';
-        let done = false;
-        const chatMessages = document.querySelector('.chat-messages');
-        while (!done) {
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            if (value) {
-                const chunk = decoder.decode(value, { stream: true });
-                // 解析SSE格式（如以data: 开头的行）
-                chunk.split('\n').forEach(line => {
-                    if (line.startsWith('data:')) {
-                        const data = line.replace(/^data:\s*/, '');
-                        if (data === '[DONE]') return;
-                        try {
-                            const json = JSON.parse(data);
-                            const delta = json.choices?.[0]?.delta?.content || '';
-                            fullText += delta;
-                            contentDiv.innerHTML = marked.parse(fullText);
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                        } catch (e) {
-                            // 忽略解析失败
-                        }
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+    let done = false;
+    const chatMessages = document.querySelector('.chat-messages');
+    while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            // 解析SSE格式（如以data: 开头的行）
+            chunk.split('\n').forEach(line => {
+                if (line.startsWith('data:')) {
+                    const data = line.replace(/^data:\s*/, '');
+                    if (data === '[DONE]') return;
+                    try {
+                        const json = JSON.parse(data);
+                        const delta = json.choices?.[0]?.delta?.content || '';
+                        fullText += delta;
+                        contentDiv.innerHTML = marked.parse(fullText);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        // 忽略解析失败
                     }
-                });
-            }
+                }
+            });
         }
+    }
     appendMessageToHistory(departmentType, agentName, 'ai', fullText);
     return fullText;
     }catch(error){
@@ -210,21 +210,21 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
 
     try{
         const response = await fetch('http://localhost:3000/coze',{
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
                 message: message,
                 model: currentAgent['API-Model'],
                 apiKey: currentAgent['API-Key'],
                 url: currentAgent['API-URL'],
                 botId: currentAgent['bot-id']
-            })
-        });
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-        }
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
         return processStreamingResponse(response, contentDiv, departmentType, agentName);
     }catch(error){
         throw error;

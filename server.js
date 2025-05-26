@@ -46,10 +46,14 @@ const storage = multer.diskStorage({
     },
     // 设置文件的存储名称
     filename: function (req, file, cb) {
+        // 解码原始文件名
+        const decodedOriginalname = decodeURIComponent(file.originalname);
         // 生成唯一文件名：时间戳 + 随机数 + 原文件扩展名
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const filename = uniqueSuffix + path.extname(file.originalname);
+        const filename = uniqueSuffix + path.extname(decodedOriginalname);
         console.log(`[${new Date().toLocaleString()}] 生成文件名: ${filename}`);
+        // 将解码后的原始文件名保存到 file 对象中
+        file.decodedOriginalname = decodedOriginalname;
         cb(null, filename);
     }
 });
@@ -100,15 +104,10 @@ app.post('/upload', upload.single('file'), (req, res) => {
             console.log(`[${new Date().toLocaleString()}] 上传失败: 没有文件被上传`);
             return res.status(400).json({ error: '没有文件被上传' });
         }
-        //用来查看和确认传递进来的文件的代码
-        // console.log(req.file);
-        // const formData = new FormData();
-        // formData.append('file',req.file);
-        // console.log(formData);
 
         // 记录上传成功的文件信息
         console.log(`[${new Date().toLocaleString()}] 文件上传成功:`);
-        console.log(`- 原始文件名: ${req.file.originalname}`);
+        console.log(`- 原始文件名: ${req.file.decodedOriginalname}`);
         console.log(`- 保存文件名: ${req.file.filename}`);
         console.log(`- 文件大小: ${(req.file.size / 1024).toFixed(2)} KB`);
         console.log(`- 文件类型: ${req.file.mimetype}`);
@@ -119,7 +118,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
             success: true,
             file: {
                 filename: req.file.filename,
-                originalname: req.file.originalname,
+                originalname: req.file.decodedOriginalname,
                 size: req.file.size,
                 mimetype: req.file.mimetype
             }
