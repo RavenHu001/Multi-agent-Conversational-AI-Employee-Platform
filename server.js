@@ -3,9 +3,9 @@ const express = require('express');    // Express框架，用于创建Web服务�
 const multer = require('multer');      // Multer中间件，用于处理文件上传
 const path = require('path');          // Node.js路径模块，用于处理文件路径
 const cors = require('cors');          // CORS中间件，用于处理跨域请求
-const fetch = require('node - fetch');
-const FormData = require('form - data');//安装form-data包，用于处理文件发送
-const fs = require('fs');// Node.js文件系统模块，用于文件操作
+const fetch = require('node-fetch');   // node-fetch模块，用于发送HTTP请求
+const FormData = require('form-data'); // FormData模块，用于处理文件上传
+const fs = require('fs');              // Node.js文件系统模块，用于文件操作
 const { type } = require('os');
 const { json } = require('stream/consumers');
 
