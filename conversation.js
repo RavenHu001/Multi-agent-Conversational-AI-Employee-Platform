@@ -302,7 +302,7 @@ window.processStreamingResponse = async function(response, contentDiv, departmen
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
     // 初始化会话列表
-    //initializeConversations();
+    initializeConversations();
     
     // 添加新建会话按钮事件
     const newChatBtn = document.querySelector('.new-chat-btn');

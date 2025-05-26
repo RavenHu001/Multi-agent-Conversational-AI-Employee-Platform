@@ -199,10 +199,10 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
 //流式，接入扣子智能体的函数
 async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName){
     //检测文件夹中是否存在文件
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
-    if(files.length>0){
-        return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
-    }
+    // const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    // if(files.length>0){
+    //     return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
+    // }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
