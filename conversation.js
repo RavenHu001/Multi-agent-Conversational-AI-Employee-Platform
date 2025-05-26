@@ -89,7 +89,7 @@ function createConversationElement(conversation) {
     conversationElement.dataset.conversationId = conversation.id;
     
     conversationElement.innerHTML = `
-        <div class="conversation-title">${conversation.title}</div>
+        <div class="conversation-title" ondblclick="renameConversation(this)">${conversation.title}</div>
         <button class="delete-conversation-btn">×</button>
     `;
     
@@ -112,7 +112,7 @@ function createConversationElement(conversation) {
         const agentName = urlParams.get('agent');
         deleteConversation(departmentType, agentName, conversation.id);
     });
-    
+
     conversationList.insertBefore(conversationElement, conversationList.firstChild);
 }
 
@@ -171,6 +171,57 @@ function deleteConversation(department, agent, conversationId) {
             createNewConversation();
         }
     }
+}
+//双击会话名改名
+function renameConversation(element){
+    //保存原始名
+    const originalName = element.textContent;
+    //创建输入框
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = originalName;
+    input.classList.add('rename-input');
+    //替换原来的标题
+    element.textContent = '';
+    element.appendChild(input);
+    //设置输入框自动获取焦点
+    input.focus();
+    //保存事件
+    const save=()=>{
+        const newName = input.value.trim();
+        if(newName){
+            element.textContent = newName;
+            element.style.display = 'block';
+            //保存到localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const departmentType = urlParams.get('department');
+            const agentName = urlParams.get('agent');
+            
+            const conversations = getConversations(departmentType, agentName);
+            const conversation = conversations.find(c => c.id === currentConversationId);
+            if(conversation){
+                conversation.title = newName;
+                const key = `conversations_${departmentType}_${agentName}`;
+                localStorage.setItem(key, JSON.stringify(conversations));
+            }
+        }
+    }
+    //事件处理
+    input.addEventListener('blur', save);
+    //监听键盘回车键
+    input.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter'){
+            save();
+        }
+    });
+    //监听键盘ESC键
+    input.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape'){
+            element.textContent = originalName;
+            element.style.display = 'block';
+        }
+    });
+    
 }
 
 // 初始化会话列表
