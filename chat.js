@@ -272,13 +272,18 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
 }
 //流式接入扣子，带会话ID
 async function sendMessageToCozeWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId){
+    //检测文件夹中是否存在文件
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    if(files.length>0){
+        return sendMessageToCozeWithFilesWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId);
+    }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
 
     try{
-        const response = await fetch('http://localhost:3000/coze/conversation',{
+        const response = await fetch('http://localhost:3000/coze/conversation/upload',{
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -297,6 +302,47 @@ async function sendMessageToCozeWithConversation(message, currentAgent, loadingM
         }
         return processStreamingResponse(response, contentDiv, departmentType, agentName);
     }catch(error){
+        throw error;
+    }
+}   
+//流式接入coze，带文件，带会话id（当前文件源直接是本地暂存的文件）
+async function sendMessageToCozeWithFilesWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId){
+    // 移除加载消息
+    removeMessage(loadingMessageId);
+    // 使用独立方法插入AI消息div
+    const { messageElement, contentDiv } = createStreamingAIMessageElement();
+    //从本地获取files
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    try{
+        const response = await fetch('http://localhost:3000/coze/upload',{
+            method:'POST',
+            headers:{
+                'Content-Type': 'application/json'
+            },
+            body:JSON.stringify({
+                message:message,
+                files:files,
+                url:currentAgent['API-URL'],
+                apiKey:currentAgent['API-Key'],
+                botId:currentAgent['bot-id'],
+                conversationId:conversationId
+            })
+        })
+        const result = await processStreamingResponse(response, contentDiv, departmentType, agentName);
+        
+        // 清除已上传的文件
+        // 1. 清除本地存储
+        localStorage.removeItem('uploadedFiles');
+        
+        // 2. 清除文件预览
+        const filePreview = document.getElementById('file-preview');
+        if (filePreview) {
+            filePreview.innerHTML = '';
+            filePreview.classList.remove('visible');
+        }
+        
+        return result;
+    }catch(error){    
         throw error;
     }
 }

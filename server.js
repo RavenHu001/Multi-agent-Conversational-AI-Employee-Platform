@@ -455,3 +455,83 @@ app.post('/coze/conversation', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+//带文件对话，带会话id，先将文件上传至扣子获得id，再将id和message发送至coze，流式接入
+app.post('/coze/conversation/upload',async(req,res)=>{
+    const filesInf  = req.body.files;
+    const url = req.body.url;
+    const apiKey = req.body.apiKey;
+    const botId = req.body.botId;
+    const message = req.body.message;
+    const conversationId = req.body.conversationId;
+    let fileIds;
+    try{
+        fileIds = await multipleFilesToCoze(filesInf,apiKey);
+    }catch(error){
+        console.error(`[${new Date().toLocaleString()}] 上传文件失败:`, error);
+        return res.status(500).json({ error: error.message });
+    }
+
+    let content = "";
+    content+="[{\"type\":\"text\",\"text\":\""+message+"\"}";
+    for(let i=0;i<fileIds.length;i++){
+        if(filesInf[i].mimetype.startsWith("image/")){
+            content+=",{\"type\":\"image\",\"file_id\":\""+fileIds[i]+"\"}";
+        }else if(filesInf[i].mimetype.startsWith("audio/")){
+            content+=",{\"type\":\"audio\",\"file_id\":\""+fileIds[i]+"\"}";
+        }else{
+            content+=",{\"type\":\"file\",\"file_id\":\""+fileIds[i]+"\"}";
+        }
+    };
+    content+="]";
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+    try {
+        const response = await fetch(url+'?conversation_id='+conversationId,{
+            method:'POST',
+            headers:{
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body:JSON.stringify({
+                "bot_id": botId,
+                "user_id": "123456",
+                "stream": true,
+                "additional_messages": [{
+                    "role": "user",
+                    "content": content,
+                    "content_type": "object_string"
+                }]
+            })
+        });
+        console.log(response);
+        if(!response.ok){
+            throw new Error(`API request failed: ${response.status}`);
+        }
+
+        // 使用 Node.js 的流处理方式
+        response.body.pipe(res);
+        
+        // 监听流的结束事件
+        response.body.on('end', () => {
+            // 在流结束后删除文件
+            for(const file of filesInf){
+                const filePath = path.join('uploads', file.filename);
+                try {
+                    // 删除文件
+                    fs.unlinkSync(filePath);
+                    console.log(`[${new Date().toLocaleString()}] 文件删除成功: ${file.filename}`);
+                } catch (error) {
+                    console.error(`[${new Date().toLocaleString()}] 删除文件失败: ${file.filename}`, error);
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});

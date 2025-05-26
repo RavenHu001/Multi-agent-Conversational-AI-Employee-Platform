@@ -151,6 +151,7 @@ function switchToConversation(department, agent, conversationId) {
 
 // 删除会话
 function deleteConversation(department, agent, conversationId) {
+    //从现有保存的conversations中寻找conversationId对应的会话，并通过过滤掉该会话的方式实现删除
     const conversations = getConversations(department, agent);
     const updatedConversations = conversations.filter(c => c.id !== conversationId);
     const key = `conversations_${department}_${agent}`;
@@ -302,7 +303,7 @@ window.processStreamingResponse = async function(response, contentDiv, departmen
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
     // 初始化会话列表
-    //initializeConversations();
+    initializeConversations();
     
     // 添加新建会话按钮事件
     const newChatBtn = document.querySelector('.new-chat-btn');
