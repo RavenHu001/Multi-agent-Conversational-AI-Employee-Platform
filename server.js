@@ -294,7 +294,6 @@ app.post('/coze/upload',async(req,res)=>{
         }
     };
     content+="]";
-    // content = "[{\"type\":\"text\",\"text\":\""+message+"\"},{\"type\":\"file\",\"file_id\":\""+"7506787222818422838"+"\"}]";
     res.set({
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -318,23 +317,32 @@ app.post('/coze/upload',async(req,res)=>{
                 }]
             })
         });
+        console.log(response);
         if(!response.ok){
             throw new Error(`API request failed: ${response.status}`);
         }
 
         // 使用 Node.js 的流处理方式
         response.body.pipe(res);
+        
+        // 监听流的结束事件
+        response.body.on('end', () => {
+            // 在流结束后删除文件
+            for(const file of filesInf){
+                const filePath = path.join('uploads', file.filename);
+                try {
+                    // 删除文件
+                    fs.unlinkSync(filePath);
+                    console.log(`[${new Date().toLocaleString()}] 文件删除成功: ${file.filename}`);
+                } catch (error) {
+                    console.error(`[${new Date().toLocaleString()}] 删除文件失败: ${file.filename}`, error);
+                }
+            }
+        });
+        
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: error.message });
-    }finally{
-        //删除上传的文件
-        for(const file of filesInf){
-            const filePath = path.join('uploads', file.filename);
-            // 删除文件
-            fs.unlinkSync(filePath);
-            console.log(`[${new Date().toLocaleString()}] 文件删除成功: ${file.filename}`);
-        }
     }
 });
 //发送单个文件至coze并获取文件id
