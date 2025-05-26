@@ -3,8 +3,9 @@ const express = require('express');    // Express框架，用于创建Web服务�
 const multer = require('multer');      // Multer中间件，用于处理文件上传
 const path = require('path');          // Node.js路径模块，用于处理文件路径
 const cors = require('cors');          // CORS中间件，用于处理跨域请求
-const fs = require('fs');              // Node.js文件系统模块，用于文件操作
-const FormData = require('form-data'); //安装form-data包，用于处理文件发送
+const fetch = require('node - fetch');
+const FormData = require('form - data');//安装form-data包，用于处理文件发送
+const fs = require('fs');// Node.js文件系统模块，用于文件操作
 const { type } = require('os');
 const { json } = require('stream/consumers');
 
@@ -350,20 +351,22 @@ async function singleFileToCoze(fileInf,url,apiKey){
     try{
         //需要获取文件对象，随后将文件对象放入formData中以生成报文
         const filePath = path.join('uploads', fileInf.filename);
-        const file = fs.readFileSync(filePath);//文件确实抓出来了
-        console.log(file instanceof Buffer);
-        const formData = new FormData();
-        formData.append('file',file);//但这里似乎要么是把文件以字符串塞进去了，要么是文件流
-        console.log(formData);
+        // const file = fs.readFileSync(filePath);//文件确实抓出来了
+        // console.log(file instanceof Buffer);
+        // const formData = new FormData();
+        // formData.append('file',file);//但这里似乎要么是把文件以字符串塞进去了，要么是文件流
+        // console.log(formData);
+        const form = new FormData();
+        form.append('file',fs.createReadStream(filePath));
 
         const response = await fetch(url,{
             method:'POST',
             headers:{
                 'Authorization': `Bearer ${apiKey}`,
-                // ...formData.getHeaders() // 自动添加 FormData 所需的 Content-Type 等头信息
-                'Content-Type': "multipart/form-data" 
+                ...form.getHeaders() // 自动添加 FormData 所需的 Content-Type 等头信息
+                //'Content-Type': "multipart/form-data" 
             },
-            body:formData
+            body:form
         });
         if(!response.ok){
             throw new Error(`API request failed: ${response.status}`);

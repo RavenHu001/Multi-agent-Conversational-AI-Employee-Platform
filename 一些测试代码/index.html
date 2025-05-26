@@ -19,8 +19,12 @@ async function uploadFile() {
         return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    const fetch = require('node - fetch');
+    const FormData = require('form - data');
+    const fs = require('fs');
+
+    const form = new FormData();
+    form.append('file', fs.createReadStream('/upload/TuPian1.png'));
     console.log(file instanceof File);
 
     try {
@@ -28,10 +32,10 @@ async function uploadFile() {
             method: 'POST',
             headers:{
                 'Authorization': `Bearer pat_nHfDUcwCQyiXaMH6oH4IGotZPVDYDMFknyB0D2WYfQ2VbcZfIboLgqrlf30weRbJ`,
-                // ...formData.getHeaders() // 自动添加 FormData 所需的 Content-Type 等头信息
-                'Content-Type': "multipart/form-data" 
+                ...form.getHeaders() // 自动添加 FormData 所需的 Content-Type 等头信息
+                //'Content-Type': "multipart/form-data" 
             },
-            body: formData
+            body: form
         });
         const result = await response.json();
         console.log('上传成功:', result);
