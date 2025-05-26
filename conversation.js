@@ -59,6 +59,11 @@ async function createNewConversation() {
     // 切换到新会话
     switchToConversation(departmentType, agentName, conversationId);
     
+    //发送欢迎语句
+    if(currentAgent['welcome']){
+        //添加欢迎语句到UI
+        addMessageToChat(currentAgent['welcome'],'ai');
+    }
     return conversationId;
 }
 
