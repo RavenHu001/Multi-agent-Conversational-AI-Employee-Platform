@@ -230,14 +230,19 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
         throw error;
     }
 }
-//流式接入coze，带文件（当前文件源直接是本地暂存的文件），这个方法暂时用不了，不知道怎么让扣子接收文件
+//流式接入coze，带文件（当前文件源直接是本地暂存的文件）
 async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName){
+    //从本地获取files
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    for(let file of files){
+        // 将文件信息作为用户消息添加到聊天区域
+        const fileMessage = `${getFileIcon(file.mimetype)} ${file.originalname} (${formatFileSize(file.size)})`;
+        addMessageToChat(fileMessage, 'user');
+    }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
-    //从本地获取files
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
     try{
         const response = await fetch('http://localhost:3000/coze/upload',{
             method:'POST',
@@ -307,12 +312,18 @@ async function sendMessageToCozeWithConversation(message, currentAgent, loadingM
 }   
 //流式接入coze，带文件，带会话id（当前文件源直接是本地暂存的文件）
 async function sendMessageToCozeWithFilesWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId){
+    //从本地获取files
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    for(let file of files){
+        // 将文件信息作为用户消息添加到聊天区域
+        const fileMessage = `${getFileIcon(file.mimetype)} ${file.originalname} (${formatFileSize(file.size)})`;
+        addMessageToChat(fileMessage, 'user');
+    }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
-    //从本地获取files
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+
     try{
         const response = await fetch('http://localhost:3000/coze/upload',{
             method:'POST',
@@ -593,10 +604,15 @@ async function handleFileUpload(event) {
         // 上传文件
         try {
             const formData = new FormData();
-            formData.append('file', file);
+            // 创建新的 File 对象，确保文件名使用正确的编码
+            const newFile = new File([file], file.name, {
+                type: file.type,
+                lastModified: file.lastModified
+            });
+            formData.append('file', newFile);
 
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://localhost:3000/upload', true);//需要让这里能自动获取后端服务器的根目录
+            xhr.open('POST', 'http://localhost:3000/upload', true);
 
             // 上传进度
             xhr.upload.onprogress = (e) => {
@@ -612,7 +628,7 @@ async function handleFileUpload(event) {
                     const response = JSON.parse(xhr.responseText);
                     if (response.success) {
                         fileItem.classList.add('uploaded');
-                        // 保存上传成功的文件信息到本地存储,保存的只是文件信息，没有文件内容
+                        // 保存上传成功的文件信息到本地存储
                         const uploadedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
                         uploadedFiles.push({
                             filename: response.file.filename,
@@ -623,6 +639,10 @@ async function handleFileUpload(event) {
                         });
                         localStorage.setItem('uploadedFiles', JSON.stringify(uploadedFiles));
                         console.log('文件上传成功:', response.file);
+
+                        // // 将文件信息作为用户消息添加到聊天区域
+                        // const fileMessage = `${getFileIcon(file.type)} ${response.file.originalname} (${formatFileSize(file.size)})`;
+                        // addMessageToChat(fileMessage, 'user');
                     }
                 } else {
                     const error = JSON.parse(xhr.responseText);

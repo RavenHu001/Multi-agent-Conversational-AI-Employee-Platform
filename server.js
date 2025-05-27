@@ -46,14 +46,14 @@ const storage = multer.diskStorage({
     },
     // 设置文件的存储名称
     filename: function (req, file, cb) {
-        // 解码原始文件名
-        const decodedOriginalname = decodeURIComponent(file.originalname);
+        // 处理文件名编码
+        const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
         // 生成唯一文件名：时间戳 + 随机数 + 原文件扩展名
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const filename = uniqueSuffix + path.extname(decodedOriginalname);
+        const filename = uniqueSuffix + path.extname(originalname);
         console.log(`[${new Date().toLocaleString()}] 生成文件名: ${filename}`);
-        // 将解码后的原始文件名保存到 file 对象中
-        file.decodedOriginalname = decodedOriginalname;
+        // 将处理后的原始文件名保存到 file 对象中
+        file.decodedOriginalname = originalname;
         cb(null, filename);
     }
 });
