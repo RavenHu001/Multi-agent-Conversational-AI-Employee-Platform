@@ -547,6 +547,7 @@ app.post('/user/login',(req,res)=>{
     //从数据库中检测用户名是否存在
     const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
     const user_datas_array = JSON.parse(user_datas);
+    //尝试从json中获取对应用户对象
     const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
     if(!user_data_item){
         return res.status(400).json({error:"用户名不存在"});
@@ -555,6 +556,14 @@ app.post('/user/login',(req,res)=>{
     if(user_data_item.password !== user_password){
         return res.status(400).json({error:"密码错误"});
     }
+    //如果都成功，则录入登录时间
+    user_datas_array.forEach(item=>{
+        if(item.username === user_name){
+            item.last_login = new Date().toLocaleString();
+        }
+    });
+    //将用户信息写入数据库
+    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
     //返回用户信息
     res.json({
         success:true,

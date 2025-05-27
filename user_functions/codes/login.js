@@ -1,3 +1,8 @@
+//如果已经登录过，则跳转到主页
+if(localStorage.getItem('is_login') === 'true'){
+    localStorage.removeItem('is_login');
+    window.location.href = '/home.html';
+}
 document.getElementById('login-form').addEventListener('submit',async function(e){
     e.preventDefault();//阻止默认提交
 
@@ -28,7 +33,6 @@ document.getElementById('login-form').addEventListener('submit',async function(e
         alert(response.message);
         localStorage.setItem('is_login',true);//保存登录状态
         localStorage.setItem('username',response.user_data.username);//保存用户名
-        window.location.href = '/home.html';
     }else{
         alert(response.error);
     }

@@ -32,7 +32,7 @@ function checkLoginStatus() {
     const userInfo = document.getElementById('user-info');
     const usernameDisplay = document.getElementById('username-display');
 
-    if (isLogin === 'true' && username) {
+    if (username) {
         // 已登录状态
         loginBtn.style.display = 'none';
         userInfo.style.display = 'flex';
