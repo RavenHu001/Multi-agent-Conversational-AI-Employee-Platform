@@ -38,7 +38,7 @@ document.getElementById('singup-form').addEventListener('submit',async function(
     //如果注册成功，则给出提示并跳转到登录界面
     if(response.success){
         alert(response.message);
-        localStorage.setItem('is_singup',true);
+        localStorage.setItem('is_singup',true);//保存注册状态
     }else{
         alert(response.error);
     }

@@ -26,6 +26,7 @@ document.getElementById('login-form').addEventListener('submit',async function(e
     //如果登录成功，则给出提示并跳转到主页
     if(response.success){
         alert(response.message);
+        localStorage.setItem('is_login',true);//保存登录状态
         window.location.href = '/home.html';
     }else{
         alert(response.error);
