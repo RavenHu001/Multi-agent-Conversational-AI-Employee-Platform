@@ -45,7 +45,7 @@ async function loadConfig(url) {
 }
 
 //iframe的chatBox
-function setChatBox(agents) {
+function setChatBox() {
     const agentItems = document.querySelectorAll('.agent-item');
     const chatFrame = document.querySelector('.chat-frame');
     
@@ -113,7 +113,7 @@ function displayDepartments(departments) {
                 });
 
                 // 重新设置聊天框事件
-                setChatBox(departmentAgents);
+                setChatBox();
                 //自动选择第一个智能体
                 const firstAgent = agentListContainer.querySelector('.agent-item');
                 if (firstAgent) {

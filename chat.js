@@ -15,11 +15,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const urlParams = new URLSearchParams(window.location.search);
         const departmentType = urlParams.get('department');
         const agentName = urlParams.get('agent');
-        // 新建会话按钮清空当前聊天记录
-        const newChatBtn = document.querySelector('.new-chat-btn');
-        if (newChatBtn) {
-            newChatBtn.addEventListener('click', () => clearCurrentChatHistory(agentName,departmentType));
-        }
+        // // 新建会话按钮清空当前聊天记录
+        // const newChatBtn = document.querySelector('.new-chat-btn');
+        // if (newChatBtn) {
+        //     newChatBtn.addEventListener('click', () => clearCurrentChatHistory(agentName,departmentType));
+        // }
 
 
         if (departmentType && agentName) {
@@ -79,7 +79,30 @@ async function sendMessage() {
                 // 流式渲染
                 response = await sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName);
             } else if(currentAgent['API-Model'] === 'coze'){
-                response = await sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName)
+                // 检查是否有当前会话ID
+                const currentKey = `currentConversation_${departmentType}_${agentName}`;
+                const conversationId = localStorage.getItem(currentKey);
+                
+                if (conversationId) {
+                    // 如果有会话ID，使用带会话的API调用
+                    response = await sendMessageToCozeWithConversation(
+                        message, 
+                        currentAgent, 
+                        loadingMessageId, 
+                        departmentType, 
+                        agentName, 
+                        conversationId
+                    );
+                } else {
+                    // 如果没有会话ID，使用普通API调用
+                    response = await sendMessageToCoze(
+                        message, 
+                        currentAgent, 
+                        loadingMessageId, 
+                        departmentType, 
+                        agentName
+                    );
+                }
             } else {
                 throw new Error(`未知模型: ${currentAgent['API-Model']}`);
             }
@@ -122,51 +145,51 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
 
     try{
         const response = await fetch('http://localhost:3000/deepseek', {//需要让这里能自动获取后端服务器的根目录
-            method: 'POST',
-            headers: {
+        method: 'POST',
+        headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        },
+        body: JSON.stringify({
                 message: message,
-                model: currentAgent['API-Model'],
+            model: currentAgent['API-Model'],
                 apiKey: currentAgent['API-Key'],
                 url: currentAgent['API-URL']
-            })
-        });
+        })
+    });
 
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-        }
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
 
-        // 逐步读取流式内容
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let fullText = '';
-        let done = false;
-        const chatMessages = document.querySelector('.chat-messages');
-        while (!done) {
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            if (value) {
-                const chunk = decoder.decode(value, { stream: true });
-                // 解析SSE格式（如以data: 开头的行）
-                chunk.split('\n').forEach(line => {
-                    if (line.startsWith('data:')) {
-                        const data = line.replace(/^data:\s*/, '');
-                        if (data === '[DONE]') return;
-                        try {
-                            const json = JSON.parse(data);
-                            const delta = json.choices?.[0]?.delta?.content || '';
-                            fullText += delta;
-                            contentDiv.innerHTML = marked.parse(fullText);
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                        } catch (e) {
-                            // 忽略解析失败
-                        }
+    // 逐步读取流式内容
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+    let done = false;
+    const chatMessages = document.querySelector('.chat-messages');
+    while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            // 解析SSE格式（如以data: 开头的行）
+            chunk.split('\n').forEach(line => {
+                if (line.startsWith('data:')) {
+                    const data = line.replace(/^data:\s*/, '');
+                    if (data === '[DONE]') return;
+                    try {
+                        const json = JSON.parse(data);
+                        const delta = json.choices?.[0]?.delta?.content || '';
+                        fullText += delta;
+                        contentDiv.innerHTML = marked.parse(fullText);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        // 忽略解析失败
                     }
-                });
-            }
+                }
+            });
         }
+    }
     appendMessageToHistory(departmentType, agentName, 'ai', fullText);
     return fullText;
     }catch(error){
@@ -176,10 +199,10 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
 //流式，接入扣子智能体的函数
 async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName){
     //检测文件夹中是否存在文件
-    // const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
-    // if(files.length>0){
-    //     return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
-    // }
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    if(files.length>0){
+        return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
+    }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
@@ -187,34 +210,39 @@ async function sendMessageToCoze(message, currentAgent, loadingMessageId, depart
 
     try{
         const response = await fetch('http://localhost:3000/coze',{
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
                 message: message,
                 model: currentAgent['API-Model'],
                 apiKey: currentAgent['API-Key'],
                 url: currentAgent['API-URL'],
                 botId: currentAgent['bot-id']
-            })
-        });
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-        }
+        })
+    });
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
         return processStreamingResponse(response, contentDiv, departmentType, agentName);
     }catch(error){
         throw error;
     }
 }
-//流式接入coze，带文件（当前文件源直接是本地暂存的文件），这个方法暂时用不了，不知道怎么让扣子接收文件
+//流式接入coze，带文件（当前文件源直接是本地暂存的文件）
 async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName){
+    //从本地获取files
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    for(let file of files){
+        // 将文件信息作为用户消息添加到聊天区域
+        const fileMessage = `${getFileIcon(file.mimetype)} ${file.originalname} (${formatFileSize(file.size)})`;
+        addMessageToChat(fileMessage, 'user');
+    }
     // 移除加载消息
     removeMessage(loadingMessageId);
     // 使用独立方法插入AI消息div
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
-    //从本地获取files
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
     try{
         const response = await fetch('http://localhost:3000/coze/upload',{
             method:'POST',
@@ -227,6 +255,88 @@ async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageI
                 url:currentAgent['API-URL'],
                 apiKey:currentAgent['API-Key'],
                 botId:currentAgent['bot-id']
+            })
+        })
+        const result = await processStreamingResponse(response, contentDiv, departmentType, agentName);
+        
+        // 清除已上传的文件
+        // 1. 清除本地存储
+        localStorage.removeItem('uploadedFiles');
+        
+        // 2. 清除文件预览
+        const filePreview = document.getElementById('file-preview');
+        if (filePreview) {
+            filePreview.innerHTML = '';
+            filePreview.classList.remove('visible');
+        }
+        
+        return result;
+    }catch(error){    
+        throw error;
+    }
+}
+//流式接入扣子，带会话ID
+async function sendMessageToCozeWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId){
+    //检测文件夹中是否存在文件
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    if(files.length>0){
+        return sendMessageToCozeWithFilesWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId);
+    }
+    // 移除加载消息
+    removeMessage(loadingMessageId);
+    // 使用独立方法插入AI消息div
+    const { messageElement, contentDiv } = createStreamingAIMessageElement();
+
+    try{
+        const response = await fetch('http://localhost:3000/coze/conversation/upload',{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                model: currentAgent['API-Model'],
+                apiKey: currentAgent['API-Key'],
+                url: currentAgent['API-URL'],
+                botId: currentAgent['bot-id'],
+                conversationId: conversationId
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+        return processStreamingResponse(response, contentDiv, departmentType, agentName);
+    }catch(error){
+        throw error;
+    }
+}   
+//流式接入coze，带文件，带会话id（当前文件源直接是本地暂存的文件）
+async function sendMessageToCozeWithFilesWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId){
+    //从本地获取files
+    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+    for(let file of files){
+        // 将文件信息作为用户消息添加到聊天区域
+        const fileMessage = `${getFileIcon(file.mimetype)} ${file.originalname} (${formatFileSize(file.size)})`;
+        addMessageToChat(fileMessage, 'user');
+    }
+    // 移除加载消息
+    removeMessage(loadingMessageId);
+    // 使用独立方法插入AI消息div
+    const { messageElement, contentDiv } = createStreamingAIMessageElement();
+
+    try{
+        const response = await fetch('http://localhost:3000/coze/upload',{
+            method:'POST',
+            headers:{
+                'Content-Type': 'application/json'
+            },
+            body:JSON.stringify({
+                message:message,
+                files:files,
+                url:currentAgent['API-URL'],
+                apiKey:currentAgent['API-Key'],
+                botId:currentAgent['bot-id'],
+                conversationId:conversationId
             })
         })
         const result = await processStreamingResponse(response, contentDiv, departmentType, agentName);
@@ -408,6 +518,7 @@ function loadChatHistoryToUI(department, agent) {
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
 //清空当前会话历史记录的函数
 function clearCurrentChatHistory(agentName,departmentType) {
     // 清空本地历史
@@ -493,10 +604,15 @@ async function handleFileUpload(event) {
         // 上传文件
         try {
             const formData = new FormData();
-            formData.append('file', file);
+            // 创建新的 File 对象，确保文件名使用正确的编码
+            const newFile = new File([file], file.name, {
+                type: file.type,
+                lastModified: file.lastModified
+            });
+            formData.append('file', newFile);
 
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://localhost:3000/upload', true);//需要让这里能自动获取后端服务器的根目录
+            xhr.open('POST', 'http://localhost:3000/upload', true);
 
             // 上传进度
             xhr.upload.onprogress = (e) => {
@@ -512,7 +628,7 @@ async function handleFileUpload(event) {
                     const response = JSON.parse(xhr.responseText);
                     if (response.success) {
                         fileItem.classList.add('uploaded');
-                        // 保存上传成功的文件信息到本地存储,保存的只是文件信息，没有文件内容
+                        // 保存上传成功的文件信息到本地存储
                         const uploadedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
                         uploadedFiles.push({
                             filename: response.file.filename,
@@ -523,6 +639,10 @@ async function handleFileUpload(event) {
                         });
                         localStorage.setItem('uploadedFiles', JSON.stringify(uploadedFiles));
                         console.log('文件上传成功:', response.file);
+
+                        // // 将文件信息作为用户消息添加到聊天区域
+                        // const fileMessage = `${getFileIcon(file.type)} ${response.file.originalname} (${formatFileSize(file.size)})`;
+                        // addMessageToChat(fileMessage, 'user');
                     }
                 } else {
                     const error = JSON.parse(xhr.responseText);
