@@ -586,8 +586,9 @@ app.post('/user/singup',(req,res)=>{
     if(user_data_item){
         return res.status(400).json({error:"用户名已存在"});
     }
+    const init_points = 1000;//设置用户初始点数
     //将用户名和密码写入数据库
-    user_datas_array.push({username:user_name,password:user_password});//使用push将新用户放入已有用户列表末尾
+    user_datas_array.push({username:user_name,password:user_password,points:init_points});//使用push将新用户放入已有用户列表末尾
     fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
     res.json({success:true,message:"注册成功"});
 });
