@@ -27,6 +27,7 @@ document.getElementById('login-form').addEventListener('submit',async function(e
     if(response.success){
         alert(response.message);
         localStorage.setItem('is_login',true);//保存登录状态
+        localStorage.setItem('username',response.user_data.username);//保存用户名
         window.location.href = '/home.html';
     }else{
         alert(response.error);

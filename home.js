@@ -1,4 +1,19 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // 检查登录状态
+    checkLoginStatus();
+    
+    // 设置登录按钮事件
+    document.getElementById('login-btn').addEventListener('click', function() {
+        window.location.href = 'user_functions/pages/login.html';
+    });
+
+    // 设置退出按钮事件
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        localStorage.removeItem('username');
+        localStorage.removeItem('is_login');
+        checkLoginStatus();
+    });
+
     try {
         const departments = await loadConfig('department.json');
         console.log('Department:', departments);
@@ -8,6 +23,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('Error loading agents:', error);
     }
 });
+
+// 检查登录状态并更新UI
+function checkLoginStatus() {
+    const isLogin = localStorage.getItem('is_login');
+    const username = localStorage.getItem('username');
+    const loginBtn = document.getElementById('login-btn');
+    const userInfo = document.getElementById('user-info');
+    const usernameDisplay = document.getElementById('username-display');
+
+    if (isLogin === 'true' && username) {
+        // 已登录状态
+        loginBtn.style.display = 'none';
+        userInfo.style.display = 'flex';
+        usernameDisplay.textContent = username;
+    } else {
+        // 未登录状态
+        loginBtn.style.display = 'block';
+        userInfo.style.display = 'none';
+        // 清除可能存在的无效登录状态
+        localStorage.removeItem('username');
+        localStorage.removeItem('is_login');
+    }
+}
 
 // 加载配置文件的函数
 async function loadConfig(url) {
