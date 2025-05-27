@@ -108,14 +108,22 @@ async function sendMessage() {
             }
         } else {
             removeMessage(loadingMessageId);
-            createStreamingAIMessageElement("抱歉，我暂时无法回复。请稍后再试。");
-            appendMessageToHistory(departmentType, agentName, 'ai', "抱歉，我暂时无法回复。请稍后再试。");
+            const errorMessage = "抱歉，我暂时无法回复。请稍后再试。";
+            createStreamingAIMessageElement(errorMessage);
+            // 保存错误消息到当前会话
+            if (currentConversationId) {
+                saveMessageToConversation(errorMessage, 'ai');
+            }
         }
     } catch (error) {
         console.error('Error sending message:', error);
         removeMessage(loadingMessageId);
-        createStreamingAIMessageElement("发送消息时出现错误，请稍后重试。");
-        appendMessageToHistory(departmentType, agentName, 'ai', "发送消息时出现错误，请稍后重试。");
+        const errorMessage = "发送消息时出现错误，请稍后重试。";
+        createStreamingAIMessageElement(errorMessage);
+        // 保存错误消息到当前会话
+        if (currentConversationId) {
+            saveMessageToConversation(errorMessage, 'ai');
+        }
     }
 }
 
@@ -288,7 +296,7 @@ async function sendMessageToCozeWithConversation(message, currentAgent, loadingM
     const { messageElement, contentDiv } = createStreamingAIMessageElement();
 
     try{
-        const response = await fetch('http://localhost:3000/coze/conversation/upload',{
+        const response = await fetch('http://localhost:3000/coze/conversation',{
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

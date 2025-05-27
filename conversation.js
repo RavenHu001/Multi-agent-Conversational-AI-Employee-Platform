@@ -166,6 +166,10 @@ function deleteConversation(department, agent, conversationId) {
     // 如果删除的是当前会话，切换到其他会话或创建新会话
     const currentKey = `currentConversation_${department}_${agent}`;
     if (conversationId === localStorage.getItem(currentKey)) {
+        // 清除当前会话的聊天历史
+        const historyKey = `chat_${department}_${agent}`;
+        localStorage.removeItem(historyKey);
+        
         if (updatedConversations.length > 0) {
             switchToConversation(department, agent, updatedConversations[0].id);
         } else {
