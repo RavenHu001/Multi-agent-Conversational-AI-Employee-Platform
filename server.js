@@ -547,8 +547,7 @@ app.post('/user/login',(req,res)=>{
     //从数据库中检测用户名是否存在
     const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
     const user_datas_array = JSON.parse(user_datas);
-    //从json中检测用户名是否存在
-    const user_data_item = user_datas_array.find(item=>item.username === user_name);
+    const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
     if(!user_data_item){
         return res.status(400).json({error:"用户名不存在"});
     }
@@ -564,3 +563,22 @@ app.post('/user/login',(req,res)=>{
     });
 });
 
+//注册
+app.post('/user/singup',(req,res)=>{
+    const user_data = req.body;
+    console.log(user_data);
+    //从数据库中查询用户名和密码
+    const user_name = user_data.username;
+    const user_password = user_data.password;
+    //从数据库中检测用户名是否存在
+    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
+    const user_datas_array = JSON.parse(user_datas);
+    const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
+    if(user_data_item){
+        return res.status(400).json({error:"用户名已存在"});
+    }
+    //将用户名和密码写入数据库
+    user_datas_array.push({username:user_name,password:user_password});//使用push将新用户放入已有用户列表末尾
+    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
+    res.json({success:true,message:"注册成功"});
+});
