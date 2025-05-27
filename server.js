@@ -455,7 +455,7 @@ app.post('/coze/conversation', async (req, res) => {
     }
 });
 
-//带文件对话，带会话id，先将文件上传至扣子获得id，再将id和message发送至coze，流式接入
+//带文件对话，带会话id，流式接入，先将文件上传至扣子获得id，再将id和message发送至coze
 app.post('/coze/conversation/upload',async(req,res)=>{
     const filesInf  = req.body.files;
     const url = req.body.url;

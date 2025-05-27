@@ -1,4 +1,19 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // 检查登录状态
+    checkLoginStatus();
+    
+    // 设置登录按钮事件
+    document.getElementById('login-btn').addEventListener('click', function() {
+        window.location.href = 'user_functions/pages/login.html';
+    });
+
+    // 设置退出按钮事件
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        localStorage.removeItem('username');
+        localStorage.removeItem('is_login');
+        localStorage.removeItem('points');
+        checkLoginStatus();
+    });
     try {
         const agents = await loadConfig('agents.json');
         console.log('Agents:', agents);
@@ -31,9 +46,40 @@ document.addEventListener('DOMContentLoaded', async function() {
             }, 100);
         }
     } catch (error) {
-        console.error('Error loading agents:', error);
+        console.error('Error loading departments:', error);
     }
 });
+
+// 检查登录状态并更新UI
+async function checkLoginStatus() {
+    const isLogin = localStorage.getItem('is_login');
+    const username = localStorage.getItem('username');
+    const loginBtn = document.getElementById('login-btn');
+    const userInfo = document.getElementById('user-info');
+    const usernameDisplay = document.getElementById('username-display');
+    const pointsDisplay = document.getElementById('points-display');
+
+    if (isLogin === 'true' && username) {
+        // 已登录状态
+        loginBtn.style.display = 'none';
+        userInfo.style.display = 'flex';
+        usernameDisplay.textContent = username;
+        //以登录，读取积分
+        const user_data = await loadConfig('user_functions/data/user_data.json');
+        const user_data_item = user_data.find(item=>item.username === username);
+        const points = user_data_item.points;
+        
+        pointsDisplay.textContent = `积分: ${points}`;
+    } else {
+        // 未登录状态
+        loginBtn.style.display = 'block';
+        userInfo.style.display = 'none';
+        // 清除可能存在的无效登录状态
+        localStorage.removeItem('username');
+        localStorage.removeItem('is_login');
+        localStorage.removeItem('points');
+    }
+}
 
 // 加载配置文件的函数
 async function loadConfig(url) {

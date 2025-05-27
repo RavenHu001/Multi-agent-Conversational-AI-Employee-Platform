@@ -1,6 +1,5 @@
 //如果已经登录过，则跳转到主页
 if(localStorage.getItem('is_login') === 'true'){
-    localStorage.removeItem('is_login');
     window.location.href = '/home.html';
 }
 document.getElementById('login-form').addEventListener('submit',async function(e){
