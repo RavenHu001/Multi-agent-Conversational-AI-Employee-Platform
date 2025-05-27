@@ -458,36 +458,110 @@ function copyMessage(button) {
         console.error('复制失败:', err);
     });
 }
-//添加下载为world的函数
+/**
+ * 下载消息为Word文档的函数
+ * 该函数会将AI回复的内容（包括格式和图片）保存为Word文档
+ * @param {HTMLElement} button - 触发下载的按钮元素
+ */
 function downloadMessage(button) {
     // 获取按钮上方的.message-content内容
     const messageContentDiv = button.closest('.message-actions').previousElementSibling;
-    const messageContent = messageContentDiv ? messageContentDiv.textContent.trim() : '';
+    
+    // 创建一个临时容器来克隆内容，这样可以保留原始HTML结构
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = messageContentDiv.innerHTML;
 
-    // 创建Word文档内容（简单HTML即可被Word识别）
-    const htmlContent = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office'
-              xmlns:w='urn:schemas-microsoft-com:office:word'
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'></head>
-        <body>${messageContent.replace(/\n/g, '<br>')}</body>
-        </html>
-    `;
+    // 处理所有图片，将它们转换为base64格式
+    // 这样做是为了确保图片能够被正确嵌入到Word文档中
+    const images = tempContainer.getElementsByTagName('img');
+    const processImages = Array.from(images).map(img => {
+        return new Promise((resolve) => {
+            // 如果图片已经是base64格式，则不需要处理
+            if (img.src.startsWith('data:')) {
+                resolve();
+                return;
+            }
+            
+            // 创建canvas用于图片转换
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const tempImg = new Image();
+            // 设置跨域属性，允许加载跨域图片
+            tempImg.crossOrigin = 'anonymous';
+            
+            // 图片加载成功后的处理
+            tempImg.onload = () => {
+                // 设置canvas尺寸与图片一致
+                canvas.width = tempImg.width;
+                canvas.height = tempImg.height;
+                // 将图片绘制到canvas上
+                ctx.drawImage(tempImg, 0, 0);
+                // 将canvas内容转换为base64格式的PNG图片
+                img.src = canvas.toDataURL('image/png');
+                resolve();
+            };
+            
+            // 图片加载失败的处理
+            tempImg.onerror = () => {
+                img.src = ''; // 移除加载失败的图片
+                resolve();
+            };
+            
+            // 开始加载图片
+            tempImg.src = img.src;
+        });
+    });
 
-    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
+    // 等待所有图片处理完成后，生成Word文档
+    Promise.all(processImages).then(() => {
+        // 创建Word文档的HTML内容
+        // 使用Word特定的命名空间来确保格式正确
+        const htmlContent = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office'
+                  xmlns:w='urn:schemas-microsoft-com:office:word'
+                  xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <style>
+                    /* 设置基本字体和样式 */
+                    body { font-family: Arial, sans-serif; }
+                    /* 保持代码块的格式和字体 */
+                    pre { white-space: pre-wrap; font-family: Consolas, monospace; }
+                    code { font-family: Consolas, monospace; }
+                    /* 确保图片不会超出页面宽度 */
+                    img { max-width: 100%; height: auto; }
+                    /* 设置段落间距 */
+                    p { margin: 10px 0; }
+                    /* 设置引用块的样式 */
+                    blockquote { 
+                        border-left: 4px solid #ccc;
+                        margin: 10px 0;
+                        padding-left: 10px;
+                    }
+                </style>
+            </head>
+            <body>${tempContainer.innerHTML}</body>
+            </html>
+        `;
 
-    // 创建下载链接并自动点击
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'AI回复.doc';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
+        // 创建Blob对象，添加BOM标记确保中文正确显示
+        const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+
+        // 创建下载链接并自动触发下载
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'AI回复.doc';
+        document.body.appendChild(a);
+        a.click();
+        // 清理临时创建的元素和URL
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+    });
 }
+//获取历史记录的函数
 function getChatHistory(department, agent) {
     const key = `chat_${department}_${agent}`;
     const history = localStorage.getItem(key);
