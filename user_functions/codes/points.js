@@ -4,7 +4,7 @@ async function updatePoints(username, is_login,operation=null) {
     }
     const user_data = await loadConfig('user_functions/data/user_data.json');
     const user_data_item = user_data.find(item=>item.username === username);
-    const points = user_data_item.points;
+    let points = user_data_item.points;
     
     if(operation === 'chat'){
         points-=2;
