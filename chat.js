@@ -62,6 +62,7 @@ async function checkLoginStatus() {
         userInfo.style.display = 'flex';
         usernameDisplay.textContent = username;
         //以登录，读取积分
+        //这里不调用points中方法的原因是，个方法涉及到对后端文件的修改会导致无限刷新屏幕
         const user_data = await loadConfig('user_functions/data/user_data.json');
         const user_data_item = user_data.find(item=>item.username === username);
         const points = user_data_item.points;
@@ -108,20 +109,34 @@ async function sendMessage() {
     addMessageToChat(message, 'user');
     messageInput.value = '';
 
-    // 添加加载消息
-    const loadingMessageId = 'loading-message';
-    addMessageToChat('正在生成内容...', 'ai', loadingMessageId);
+    // // 添加加载消息
+    // const loadingMessageId = 'loading-message';
+    // addMessageToChat('正在生成内容...', 'ai', loadingMessageId);
     //记录操作类型
     let operation = null;
+    //获取用户信息
+    const username = localStorage.getItem('username');
+    const isLogin = localStorage.getItem('is_login');
+    // 获取当前会话ID
+    const currentKey = `currentConversation_${departmentType}_${agentName}`;
+    const conversationId = localStorage.getItem(currentKey);
 
     try {
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
             let response;
-             // 检查是否有当前会话ID
-             const currentKey = `currentConversation_${departmentType}_${agentName}`;
-             const conversationId = localStorage.getItem(currentKey);
             if(currentAgent['API-Model'] === 'deepseek-chat'){
                 operation = 'chat';
+                //检测积分
+                const hasEnoughPoints = await checkPoints(username, isLogin, operation);
+                if(!hasEnoughPoints){
+                    const errorMessage = "积分不足，无法对话。";
+                    createStreamingAIMessageElement(errorMessage);
+                    // 保存错误消息到当前会话
+                    if (conversationId) {
+                        saveMessageToConversation(errorMessage, 'ai');
+                    }
+                    return;
+                }
                 // 流式渲染
                 response = await sendMessageToDeepSeek(
                     message, 
@@ -136,6 +151,17 @@ async function sendMessage() {
                 const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
                 if(files.length>0){
                     operation = 'chat_with_file';
+                    //检测积分
+                    const hasEnoughPoints = await checkPoints(username, isLogin, operation);
+                    if(!hasEnoughPoints){
+                        const errorMessage = "积分不足，无法对话。";
+                        createStreamingAIMessageElement(errorMessage);
+                        // 保存错误消息到当前会话
+                        if (conversationId) {
+                            saveMessageToConversation(errorMessage, 'ai');
+                        }
+                        return;
+                    }
                     response = await sendMessageToCozeWithFilesWithConversation(
                         message, 
                         currentAgent, 
@@ -146,6 +172,17 @@ async function sendMessage() {
                     );
                 }else {
                     operation = 'chat';
+                    //检测积分
+                    const hasEnoughPoints = await checkPoints(username, isLogin, operation);
+                    if(!hasEnoughPoints){
+                        const errorMessage = "积分不足，无法对话。";
+                        createStreamingAIMessageElement(errorMessage);
+                        // 保存错误消息到当前会话
+                        if (conversationId) {
+                            saveMessageToConversation(errorMessage, 'ai');
+                        }
+                        return;
+                    }
                     // 如果有会话ID，使用带会话的API调用
                     response = await sendMessageToCozeWithConversation(
                         message, 
@@ -164,7 +201,7 @@ async function sendMessage() {
             const errorMessage = "抱歉，我暂时无法回复。请稍后再试。";
             createStreamingAIMessageElement(errorMessage);
             // 保存错误消息到当前会话
-            if (currentConversationId) {
+            if (conversationId) {
                 saveMessageToConversation(errorMessage, 'ai');
             }
         }
@@ -174,13 +211,10 @@ async function sendMessage() {
         const errorMessage = "发送消息时出现错误，请稍后重试。";
         createStreamingAIMessageElement(errorMessage);
         // 保存错误消息到当前会话
-        if (currentConversationId) {
+        if (conversationId) {
             saveMessageToConversation(errorMessage, 'ai');
         }
     }
-    //获取用户信息
-    const username = localStorage.getItem('username');
-    const isLogin = localStorage.getItem('is_login');
     //更新积分
     updatePoints(username, isLogin, operation);
 }
@@ -459,7 +493,18 @@ function copyMessage(button) {
  * 该函数会将AI回复的内容（包括格式和图片）保存为Word文档
  * @param {HTMLElement} button - 触发下载的按钮元素
  */
-function downloadMessage(button) {
+async function downloadMessage(button) {
+    //设置操作类型
+    const operation = 'download';
+    //更新积分
+    const username = localStorage.getItem('username');
+    const isLogin = localStorage.getItem('is_login');
+    //检测积分
+    const hasEnoughPoints = await checkPoints(username, isLogin, operation);
+    if(!hasEnoughPoints){
+        return;
+    }
+
     // 获取按钮上方的.message-content内容
     const messageContentDiv = button.closest('.message-actions').previousElementSibling;
     
@@ -556,6 +601,9 @@ function downloadMessage(button) {
             URL.revokeObjectURL(url);
         }, 100);
     });
+
+    //更新积分
+    updatePoints(username, isLogin, operation);
 }
 //获取历史记录的函数
 function getChatHistory(department, agent) {

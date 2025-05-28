@@ -523,3 +523,74 @@
 .logout-btn:hover {
     background-color: rgba(33, 150, 243, 1);
 }
+
+/* Points recharge modal styles */
+.points-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.points-modal.visible {
+    display: flex;
+}
+
+.points-modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.points-modal-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.points-modal-text {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.points-modal-qrcode {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 25px;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.points-modal-qrcode img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.points-modal-close {
+    padding: 10px 25px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.points-modal-close:hover {
+    background-color: #1976d2;
+}
