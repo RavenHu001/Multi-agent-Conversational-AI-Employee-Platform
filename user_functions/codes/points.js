@@ -2,7 +2,7 @@ const operationCost = {
     'chat':2,
     'chat_with_file':50,
     'download':20,
-    'add_points':1000
+    'add_points':100
 }
 
 async function updatePoints(username, is_login,operation=null) {

@@ -109,9 +109,9 @@ async function sendMessage() {
     addMessageToChat(message, 'user');
     messageInput.value = '';
 
-    // // 添加加载消息
-    // const loadingMessageId = 'loading-message';
-    // addMessageToChat('正在生成内容...', 'ai', loadingMessageId);
+    // 添加加载消息
+    const loadingMessageId = 'loading-message';
+    addMessageToChat('正在生成内容...', 'ai', loadingMessageId);
     //记录操作类型
     let operation = null;
     //获取用户信息
@@ -130,6 +130,7 @@ async function sendMessage() {
                 const hasEnoughPoints = await checkPoints(username, isLogin, operation);
                 if(!hasEnoughPoints){
                     const errorMessage = "积分不足，无法对话。";
+                    removeMessage(loadingMessageId);
                     createStreamingAIMessageElement(errorMessage);
                     // 保存错误消息到当前会话
                     if (conversationId) {
@@ -155,6 +156,7 @@ async function sendMessage() {
                     const hasEnoughPoints = await checkPoints(username, isLogin, operation);
                     if(!hasEnoughPoints){
                         const errorMessage = "积分不足，无法对话。";
+                        removeMessage(loadingMessageId);
                         createStreamingAIMessageElement(errorMessage);
                         // 保存错误消息到当前会话
                         if (conversationId) {
@@ -176,6 +178,7 @@ async function sendMessage() {
                     const hasEnoughPoints = await checkPoints(username, isLogin, operation);
                     if(!hasEnoughPoints){
                         const errorMessage = "积分不足，无法对话。";
+                        removeMessage(loadingMessageId);
                         createStreamingAIMessageElement(errorMessage);
                         // 保存错误消息到当前会话
                         if (conversationId) {
