@@ -50,5 +50,17 @@
     "API-Key": "pat_nHfDUcwCQyiXaMH6oH4IGotZPVDYDMFknyB0D2WYfQ2VbcZfIboLgqrlf30weRbJ",
     "API-Model": "coze",
     "bot-id": "7493459851592007714"
+  },
+  {
+    "name": "财务数据分析助手",
+    "department-type": "Data",
+    "avatar": "AI",
+    "welcome": "你好！我是财务数据分析助手，有什么财务数据相关的问题吗？",
+    "API-URL": "https://api.coze.cn/v3/chat",
+    "API-URL-retrieve": "https://api.coze.cn/v3/chat/retrieve",
+    "API-URL-list": "https://api.coze.cn/v3/chat/message/list",
+    "API-Key": "pat_nHfDUcwCQyiXaMH6oH4IGotZPVDYDMFknyB0D2WYfQ2VbcZfIboLgqrlf30weRbJ",
+    "API-Model": "coze",
+    "bot-id": "7508664226697953295"
   }
 ] 
