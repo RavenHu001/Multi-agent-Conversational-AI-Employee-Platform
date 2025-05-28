@@ -1,3 +1,5 @@
+console.log(localStorage);
+//localStorage.clear();
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         // 检查登录状态
@@ -43,12 +45,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (departmentType && agentName) {
             // 加载历史聊天记录
             loadChatHistoryToUI(departmentType, agentName);
-            // 如果没有历史记录，显示欢迎消息
-            const agents = await loadConfig('agents.json');
-            const currentAgent = agents.find(agent => agent.name === agentName);
-            if (currentAgent && getChatHistory(departmentType, agentName).length === 0) {
-                addMessageToChat(currentAgent.welcome, 'ai');
-            }
         }
     } catch (error) {
         console.error('Error initializing chat:', error);
@@ -470,12 +466,32 @@ function addMessageToChat(message, type, messageId = null) {
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // 保存到历史，但跳过加载消息
-    if (!messageId) {
+    // 只有在非加载历史记录时才保存消息
+    if (!messageId && !window.isLoadingHistory) {
         const urlParams = new URLSearchParams(window.location.search);
         const agentName = urlParams.get('agent');
         const departmentType = urlParams.get('department');
-        appendMessageToHistory(departmentType, agentName, type, message);
+        
+        // 获取当前会话ID
+        const currentKey = `currentConversation_${departmentType}_${agentName}`;
+        const conversationId = localStorage.getItem(currentKey);
+        
+        if (conversationId) {
+            // 保存到会话系统
+            const conversations = getConversations(departmentType, agentName);
+            const conversation = conversations.find(c => c.id === conversationId);
+            if (conversation) {
+                conversation.messages.push({
+                    type,
+                    content: message
+                });
+                const key = `conversations_${departmentType}_${agentName}`;
+                localStorage.setItem(key, JSON.stringify(conversations));
+            }
+        } else {
+            // 保存到历史记录系统
+            appendMessageToHistory(departmentType, agentName, type, message);
+        }
     }
 }
 
@@ -616,6 +632,7 @@ async function downloadMessage(button) {
     //更新积分
     updatePoints(username, isLogin, operation);
 }
+
 //获取历史记录的函数
 function getChatHistory(department, agent) {
     const key = `chat_${department}_${agent}`;
@@ -638,13 +655,34 @@ function saveChatHistory(department, agent, history) {
 function loadChatHistoryToUI(department, agent) {
     const chatMessages = document.querySelector('.chat-messages');
     chatMessages.innerHTML = '';
-    const history = getChatHistory(department, agent);
-    history.forEach(item => {
-        const messageElement = document.createElement('div');
-        messageElement.className = `message ${item.type}-message`;
-        messageElement.innerHTML = createMessageContent(item.message, item.type);
-        chatMessages.appendChild(messageElement);
-    });
+    
+    // 获取当前会话ID
+    const currentKey = `currentConversation_${department}_${agent}`;
+    const conversationId = localStorage.getItem(currentKey);
+    
+    if (conversationId) {
+        // 从会话系统中加载消息
+        const conversations = getConversations(department, agent);
+        const conversation = conversations.find(c => c.id === conversationId);
+        if (conversation && conversation.messages) {
+            conversation.messages.forEach(item => {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${item.type}-message`;
+                messageElement.innerHTML = createMessageContent(item.content, item.type);
+                chatMessages.appendChild(messageElement);
+            });
+        }
+    } else {
+        // 如果没有当前会话，从历史记录系统加载
+        const history = getChatHistory(department, agent);
+        history.forEach(item => {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${item.type}-message`;
+            messageElement.innerHTML = createMessageContent(item.message, item.type);
+            chatMessages.appendChild(messageElement);
+        });
+    }
+    
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 

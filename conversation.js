@@ -59,11 +59,6 @@ async function createNewConversation() {
     // 切换到新会话
     switchToConversation(departmentType, agentName, conversationId);
     
-    //发送欢迎语句
-    if(currentAgent['welcome']){
-        //添加欢迎语句到UI
-        addMessageToChat(currentAgent['welcome'],'ai');
-    }
     return conversationId;
 }
 
@@ -128,8 +123,6 @@ function switchToConversation(department, agent, conversationId) {
     // 保存当前会话ID到localStorage
     const currentKey = `currentConversation_${department}_${agent}`;
     localStorage.setItem(currentKey, conversationId);
-    console.log('currentKey',currentKey);
-    console.log('currentConversationId',localStorage.getItem(currentKey));
     
     // 更新UI选中状态
     document.querySelectorAll('.conversation-item').forEach(item => {
@@ -142,11 +135,39 @@ function switchToConversation(department, agent, conversationId) {
     
     // 设置加载历史标记
     window.isLoadingHistory = true;
-    conversation.messages.forEach(message => {
-        addMessageToChat(message.content, message.type);
-    });
+    
+    // 只从会话系统中加载消息
+    if (conversation.messages && conversation.messages.length > 0) {
+        conversation.messages.forEach(message => {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.type}-message`;
+            messageElement.innerHTML = createMessageContent(message.content, message.type);
+            chatMessages.appendChild(messageElement);
+        });
+    } else {
+        // 如果是空会话，添加欢迎消息
+        const agents = loadConfig('agents.json').then(agents => {
+            const currentAgent = agents.find(a => a.name === agent);
+            if (currentAgent && currentAgent.welcome) {
+                const welcomeMessage = {
+                    type: 'ai',
+                    content: currentAgent.welcome
+                };
+                conversation.messages.push(welcomeMessage);
+                const key = `conversations_${department}_${agent}`;
+                localStorage.setItem(key, JSON.stringify(conversations));
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message ai-message';
+                messageElement.innerHTML = createMessageContent(welcomeMessage.content, welcomeMessage.type);
+                chatMessages.appendChild(messageElement);
+            }
+        });
+    }
+    
     // 清除加载历史标记
     window.isLoadingHistory = false;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // 删除会话
