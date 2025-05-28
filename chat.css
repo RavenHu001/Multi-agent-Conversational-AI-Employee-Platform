@@ -460,3 +460,66 @@
     background: rgba(255, 255, 255, 1);
     color: #ff4444;
 }
+
+/* User section styles */
+.user-section {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.login-btn {
+    padding: 8px 20px;
+    background-color: rgba(33, 150, 243, 0.9);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+    background-color: rgba(33, 150, 243, 1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 8px 15px;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#username-display {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.points-display {
+    font-size: 14px;
+    color: #2196f3;
+    font-weight: 500;
+    padding: 2px 8px;
+    background-color: rgba(33, 150, 243, 0.1);
+    border-radius: 12px;
+}
+
+.logout-btn {
+    padding: 6px 15px;
+    background-color: rgba(33, 150, 243, 0.9);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background-color: rgba(33, 150, 243, 1);
+}
