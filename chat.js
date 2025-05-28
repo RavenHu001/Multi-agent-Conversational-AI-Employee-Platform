@@ -15,12 +15,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const urlParams = new URLSearchParams(window.location.search);
         const departmentType = urlParams.get('department');
         const agentName = urlParams.get('agent');
-        // // 新建会话按钮清空当前聊天记录
-        // const newChatBtn = document.querySelector('.new-chat-btn');
-        // if (newChatBtn) {
-        //     newChatBtn.addEventListener('click', () => clearCurrentChatHistory(agentName,departmentType));
-        // }
-
 
         if (departmentType && agentName) {
             // 加载历史聊天记录
@@ -45,7 +39,6 @@ async function loadConfig(url) {
     }
     return await response.json();
 }
-
 
 async function sendMessage() {
     const messageInput = document.querySelector('.message-input');
@@ -205,85 +198,6 @@ async function sendMessageToDeepSeek(message, currentAgent, loadingMessageId, de
     }
     return fullText;
     }catch(error){
-        throw error;
-    }
-}
-//流式，接入扣子智能体的函数
-async function sendMessageToCoze(message, currentAgent, loadingMessageId, departmentType, agentName,conversationId){
-    //检测文件夹中是否存在文件
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
-    if(files.length>0){
-        return sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName);
-    }
-    // 移除加载消息
-    removeMessage(loadingMessageId);
-    // 使用独立方法插入AI消息div
-    const { messageElement, contentDiv } = createStreamingAIMessageElement();
-
-    try{
-        const response = await fetch('http://localhost:3000/coze',{
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-                message: message,
-                model: currentAgent['API-Model'],
-                apiKey: currentAgent['API-Key'],
-                url: currentAgent['API-URL'],
-                botId: currentAgent['bot-id']
-        })
-    });
-    if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-    }
-        return processStreamingResponse(response, contentDiv, departmentType, agentName,conversationId);
-    }catch(error){
-        throw error;
-    }
-}
-//流式接入coze，带文件（当前文件源直接是本地暂存的文件）
-async function sendMessageToCozeWithFiles(message, currentAgent, loadingMessageId, departmentType, agentName,conversationId){
-    //从本地获取files
-    const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
-    for(let file of files){
-        // 将文件信息作为用户消息添加到聊天区域
-        const fileMessage = `${getFileIcon(file.mimetype)} ${file.originalname} (${formatFileSize(file.size)})`;
-        addMessageToChat(fileMessage, 'user');
-    }
-    // 移除加载消息
-    removeMessage(loadingMessageId);
-    // 使用独立方法插入AI消息div
-    const { messageElement, contentDiv } = createStreamingAIMessageElement();
-    try{
-        const response = await fetch('http://localhost:3000/coze/upload',{
-            method:'POST',
-            headers:{
-                'Content-Type': 'application/json'
-            },
-            body:JSON.stringify({
-                message:message,
-                files:files,
-                url:currentAgent['API-URL'],
-                apiKey:currentAgent['API-Key'],
-                botId:currentAgent['bot-id']
-            })
-        })
-        const result = await processStreamingResponse(response, contentDiv, departmentType, agentName,conversationId);
-        
-        // 清除已上传的文件
-        // 1. 清除本地存储
-        localStorage.removeItem('uploadedFiles');
-        
-        // 2. 清除文件预览
-        const filePreview = document.getElementById('file-preview');
-        if (filePreview) {
-            filePreview.innerHTML = '';
-            filePreview.classList.remove('visible');
-        }
-        
-        return result;
-    }catch(error){    
         throw error;
     }
 }
@@ -625,4 +539,3 @@ function removeMessage(messageId) {
         messageElement.remove();
     }
 }
-
