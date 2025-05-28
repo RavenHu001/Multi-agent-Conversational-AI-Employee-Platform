@@ -1,4 +1,4 @@
-console.log(localStorage);
+//console.log(localStorage);
 //localStorage.clear();
 document.addEventListener('DOMContentLoaded', async function() {
     try {
