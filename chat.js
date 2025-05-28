@@ -111,6 +111,8 @@ async function sendMessage() {
     // 添加加载消息
     const loadingMessageId = 'loading-message';
     addMessageToChat('正在生成内容...', 'ai', loadingMessageId);
+    //记录操作类型
+    let operation = null;
 
     try {
         if (currentAgent['API-URL'] && currentAgent['API-Key']) {
@@ -119,10 +121,31 @@ async function sendMessage() {
              const currentKey = `currentConversation_${departmentType}_${agentName}`;
              const conversationId = localStorage.getItem(currentKey);
             if(currentAgent['API-Model'] === 'deepseek-chat'){
+                operation = 'chat';
                 // 流式渲染
-                response = await sendMessageToDeepSeek(message, currentAgent, loadingMessageId, departmentType, agentName,conversationId);
+                response = await sendMessageToDeepSeek(
+                    message, 
+                    currentAgent, 
+                    loadingMessageId, 
+                    departmentType, 
+                    agentName,
+                    conversationId
+                );
             } else if(currentAgent['API-Model'] === 'coze'){
-                if (conversationId) {
+                //检测是否有文件
+                const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+                if(files.length>0){
+                    operation = 'chat_with_file';
+                    response = await sendMessageToCozeWithFilesWithConversation(
+                        message, 
+                        currentAgent, 
+                        loadingMessageId, 
+                        departmentType, 
+                        agentName, 
+                        conversationId
+                    );
+                }else {
+                    operation = 'chat';
                     // 如果有会话ID，使用带会话的API调用
                     response = await sendMessageToCozeWithConversation(
                         message, 
@@ -131,15 +154,6 @@ async function sendMessage() {
                         departmentType, 
                         agentName, 
                         conversationId
-                    );
-                } else {
-                    // 如果没有会话ID，使用普通API调用
-                    response = await sendMessageToCoze(
-                        message, 
-                        currentAgent, 
-                        loadingMessageId, 
-                        departmentType, 
-                        agentName
                     );
                 }
             } else {
@@ -164,6 +178,11 @@ async function sendMessage() {
             saveMessageToConversation(errorMessage, 'ai');
         }
     }
+    //获取用户信息
+    const username = localStorage.getItem('username');
+    const isLogin = localStorage.getItem('is_login');
+    //更新积分
+    updatePoints(username, isLogin, operation);
 }
 
 function createStreamingAIMessageElement(content = '') {
@@ -253,7 +272,7 @@ async function sendMessageToCozeWithConversation(message, currentAgent, loadingM
     //检测文件夹中是否存在文件
     const files = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
     if(files.length>0){
-        return sendMessageToCozeWithFilesWithConversation(message, currentAgent, loadingMessageId, departmentType, agentName, conversationId);
+        return 
     }
     // 移除加载消息
     removeMessage(loadingMessageId);
