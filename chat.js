@@ -5,7 +5,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // 设置登录按钮事件
         document.getElementById('login-btn').addEventListener('click', function() {
-            window.location.href = 'user_functions/pages/login.html';
+            // 获取当前页面的父窗口（mainPage）
+            const parentWindow = window.parent;
+            if (parentWindow) {
+                // 如果存在父窗口，让父窗口跳转到登录页面
+                parentWindow.location.href = 'user_functions/pages/login.html';
+            } else {
+                // 如果没有父窗口（直接访问chat页面），则直接跳转
+                window.location.href = 'user_functions/pages/login.html';
+            }
         });
 
         // 设置退出按钮事件
