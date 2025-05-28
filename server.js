@@ -592,3 +592,32 @@ app.post('/user/singup',(req,res)=>{
     fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
     res.json({success:true,message:"注册成功"});
 });
+
+//以下部分为积分功能
+
+//更新积分
+app.post('/user/update_points',(req,res)=>{
+    const username = req.body.username;
+    const is_login = req.body.is_login;
+    const points = req.body.points;
+    console.log(username,is_login,points);
+    //检测是否登录
+    if(!is_login){
+        return res.status(400).json({error:"未登录"});
+    }
+    //检测用户名是否存在
+    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
+    const user_datas_array = JSON.parse(user_datas);
+    const user_data_item = user_datas_array.find(item=>item.username === username);
+    if(!user_data_item){
+        return res.status(400).json({error:"用户名不存在"});
+    }
+    //更新积分
+    user_datas_array.forEach(item=>{
+        if(item.username === username){
+            item.points = points;
+        }
+    });
+    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
+    res.json({success:true,message:"积分更新成功",points:points});
+});
