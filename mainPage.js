@@ -67,6 +67,55 @@ function setChatBox() {
         });
     });
 }
+
+// 添加description相关的函数
+function setupAgentDescription(agentItem, description) {
+    const descriptionText = description || "暂无描述";
+    const descriptionElement = document.createElement('div');
+    descriptionElement.className = 'agent-description';
+    descriptionElement.textContent = descriptionText;
+    agentItem.appendChild(descriptionElement);
+
+    agentItem.addEventListener('mouseenter', function(e) {
+        const rect = this.getBoundingClientRect();
+        
+        // Position the tooltip to the right of the agent item
+        descriptionElement.style.left = `${rect.right + 10}px`;
+        
+        // Center the tooltip vertically relative to the agent item
+        const tooltipHeight = descriptionElement.offsetHeight;
+        const centerY = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+        
+        // Ensure the tooltip stays within the viewport
+        const viewportHeight = window.innerHeight;
+        let finalY = centerY;
+        
+        if (centerY + tooltipHeight > viewportHeight) {
+            finalY = viewportHeight - tooltipHeight - 10;
+        }
+        if (finalY < 10) {
+            finalY = 10;
+        }
+        
+        descriptionElement.style.top = `${finalY}px`;
+    });
+}
+
+function createAgentItem(agent) {
+    const agentItem = document.createElement('div');
+    agentItem.className = 'agent-item';
+    agentItem.setAttribute('data-agent', agent.type);
+    agentItem.innerHTML = `
+        <div class="agent-avatar">${agent.avatar}</div>
+        <div class="agent-name">${agent.name}</div>
+    `;
+    
+    // 设置description
+    setupAgentDescription(agentItem, agent.description);
+    
+    return agentItem;
+}
+
 //展示部门的函数
 function displayDepartments(departments) {
     const departmentListContainer = document.querySelector('.department-list');
@@ -102,13 +151,7 @@ function displayDepartments(departments) {
                 
                 // 显示过滤后的智能体
                 departmentAgents.forEach(agent => {
-                    const agentItem = document.createElement('div');
-                    agentItem.className = 'agent-item';
-                    agentItem.setAttribute('data-agent', agent.type);
-                    agentItem.innerHTML = `
-                        <div class="agent-avatar">${agent.avatar}</div>
-                        <div class="agent-name">${agent.name}</div>
-                    `;
+                    const agentItem = createAgentItem(agent);
                     agentListContainer.appendChild(agentItem);
                 });
 
