@@ -20,9 +20,20 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // 设置退出按钮事件
         document.getElementById('logout-btn').addEventListener('click', function() {
+            // 在清除用户信息之前获取当前的department和agent
+            const urlParams = new URLSearchParams(window.location.search);
+            const departmentType = urlParams.get('department');
+            const agentName = urlParams.get('agent');
+            
             localStorage.removeItem('username');
             localStorage.removeItem('is_login');
             localStorage.removeItem('points');
+            
+            // 重新加载历史记录（会使用anonymous用户）
+            if (departmentType && agentName) {
+                loadChatHistoryToUI(departmentType, agentName);
+            }
+            
             checkLoginStatus();
         });
 
@@ -119,10 +130,10 @@ async function sendMessage() {
     //记录操作类型
     let operation = null;
     //获取用户信息
-    const username = localStorage.getItem('username');
+    const username = localStorage.getItem('username') || 'anonymous';
     const isLogin = localStorage.getItem('is_login');
     // 获取当前会话ID
-    const currentKey = `currentConversation_${departmentType}_${agentName}`;
+    const currentKey = `conversations_${username}_${departmentType}_${agentName}`;
     const conversationId = localStorage.getItem(currentKey);
 
     try {
@@ -471,9 +482,10 @@ function addMessageToChat(message, type, messageId = null) {
         const urlParams = new URLSearchParams(window.location.search);
         const agentName = urlParams.get('agent');
         const departmentType = urlParams.get('department');
+        const username = localStorage.getItem('username') || 'anonymous';
         
         // 获取当前会话ID
-        const currentKey = `currentConversation_${departmentType}_${agentName}`;
+        const currentKey = `currentConversation_${username}_${departmentType}_${agentName}`;
         const conversationId = localStorage.getItem(currentKey);
         
         if (conversationId) {
@@ -485,7 +497,7 @@ function addMessageToChat(message, type, messageId = null) {
                     type,
                     content: message
                 });
-                const key = `conversations_${departmentType}_${agentName}`;
+                const key = `conversations_${username}_${departmentType}_${agentName}`;
                 localStorage.setItem(key, JSON.stringify(conversations));
             }
         } else {
@@ -635,7 +647,8 @@ async function downloadMessage(button) {
 
 //获取历史记录的函数
 function getChatHistory(department, agent) {
-    const key = `chat_${department}_${agent}`;
+    const username = localStorage.getItem('username') || 'anonymous';
+    const key = `chat_${username}_${department}_${agent}`;
     const history = localStorage.getItem(key);
     return history ? JSON.parse(history) : [];
 }
@@ -648,16 +661,18 @@ function appendMessageToHistory(department, agent, type, message) {
 }
 //这个是保存历史的底层部分，可以被用于清空历史记录
 function saveChatHistory(department, agent, history) {
-    const key = `chat_${department}_${agent}`;
+    const username = localStorage.getItem('username') || 'anonymous';
+    const key = `chat_${username}_${department}_${agent}`;
     localStorage.setItem(key, JSON.stringify(history));
 }
 
 function loadChatHistoryToUI(department, agent) {
+    const username = localStorage.getItem('username') || 'anonymous';
     const chatMessages = document.querySelector('.chat-messages');
     chatMessages.innerHTML = '';
     
     // 获取当前会话ID
-    const currentKey = `currentConversation_${department}_${agent}`;
+    const currentKey = `currentConversation_${username}_${department}_${agent}`;
     const conversationId = localStorage.getItem(currentKey);
     
     if (conversationId) {
@@ -687,9 +702,13 @@ function loadChatHistoryToUI(department, agent) {
 }
 
 //清空当前会话历史记录的函数
-function clearCurrentChatHistory(agentName,departmentType) {
+function clearCurrentChatHistory(agentName, departmentType) {
+    const username = localStorage.getItem('username') || 'anonymous';
     // 清空本地历史
     saveChatHistory(departmentType, agentName, []);
+    // 清空当前会话
+    const currentKey = `currentConversation_${username}_${departmentType}_${agentName}`;
+    localStorage.removeItem(currentKey);
     // 清空界面
     loadChatHistoryToUI(departmentType, agentName);
     // 刷新页面
