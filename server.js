@@ -448,6 +448,7 @@ app.post('/coze/conversation', async (req, res) => {
         }
 
         // 使用 Node.js 的流处理方式
+        //console.log(response.body);
         response.body.pipe(res);
     } catch (error) {
         console.error('Error:', error);
@@ -512,6 +513,7 @@ app.post('/coze/conversation/upload',async(req,res)=>{
         }
 
         // 使用 Node.js 的流处理方式
+        //console.log(response.body);
         response.body.pipe(res);
         
         // 监听流的结束事件

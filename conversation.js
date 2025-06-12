@@ -32,6 +32,7 @@ async function createNewConversation() {
     const urlParams = new URLSearchParams(window.location.search);
     const departmentType = urlParams.get('department');
     const agentName = urlParams.get('agent');
+    const username = localStorage.getItem('username') || 'anonymous';
 
     //获取当前智能体的具体信息
     const agents = await loadConfig('agents.json');
@@ -64,15 +65,17 @@ async function createNewConversation() {
 
 // 保存会话数据
 function saveConversation(department, agent, conversation) {
+    const username = localStorage.getItem('username') || 'anonymous';
     const conversations = getConversations(department, agent);
     conversations.push(conversation);
-    const key = `conversations_${department}_${agent}`;
+    const key = `conversations_${username}_${department}_${agent}`;
     localStorage.setItem(key, JSON.stringify(conversations));
 }
 
 // 获取指定部门和智能体的所有会话
 function getConversations(department, agent) {
-    const key = `conversations_${department}_${agent}`;
+    const username = localStorage.getItem('username') || 'anonymous';
+    const key = `conversations_${username}_${department}_${agent}`;
     return JSON.parse(localStorage.getItem(key) || '[]');
 }
 
@@ -113,15 +116,17 @@ function createConversationElement(conversation) {
 
 // 切换到指定会话
 function switchToConversation(department, agent, conversationId) {
+    // console.log(localStorage);
+    const username = localStorage.getItem('username') || 'anonymous';
     const conversations = getConversations(department, agent);
     const conversation = conversations.find(c => c.id === conversationId);
-    
+    // console.log(conversation);
     if (!conversation) return;
     
     // 更新当前会话ID
     currentConversationId = conversationId;
     // 保存当前会话ID到localStorage
-    const currentKey = `currentConversation_${department}_${agent}`;
+    const currentKey = `currentConversation_${username}_${department}_${agent}`;
     localStorage.setItem(currentKey, conversationId);
     
     // 更新UI选中状态
@@ -138,6 +143,7 @@ function switchToConversation(department, agent, conversationId) {
     
     // 只从会话系统中加载消息
     if (conversation.messages && conversation.messages.length > 0) {
+        // console.log(conversation.messages);
         conversation.messages.forEach(message => {
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.type}-message`;
@@ -154,7 +160,7 @@ function switchToConversation(department, agent, conversationId) {
                     content: currentAgent.welcome
                 };
                 conversation.messages.push(welcomeMessage);
-                const key = `conversations_${department}_${agent}`;
+                const key = `conversations_${username}_${department}_${agent}`;
                 localStorage.setItem(key, JSON.stringify(conversations));
                 
                 const messageElement = document.createElement('div');
@@ -172,10 +178,11 @@ function switchToConversation(department, agent, conversationId) {
 
 // 删除会话
 function deleteConversation(department, agent, conversationId) {
+    const username = localStorage.getItem('username') || 'anonymous';
     //从现有保存的conversations中寻找conversationId对应的会话，并通过过滤掉该会话的方式实现删除
     const conversations = getConversations(department, agent);
     const updatedConversations = conversations.filter(c => c.id !== conversationId);
-    const key = `conversations_${department}_${agent}`;
+    const key = `conversations_${username}_${department}_${agent}`;
     localStorage.setItem(key, JSON.stringify(updatedConversations));
     
     // 移除UI元素
@@ -185,10 +192,10 @@ function deleteConversation(department, agent, conversationId) {
     }
     
     // 如果删除的是当前会话，切换到其他会话或创建新会话
-    const currentKey = `currentConversation_${department}_${agent}`;
+    const currentKey = `currentConversation_${username}_${department}_${agent}`;
     if (conversationId === localStorage.getItem(currentKey)) {
         // 清除当前会话的聊天历史
-        const historyKey = `chat_${department}_${agent}`;
+        const historyKey = `chat_${username}_${department}_${agent}`;
         localStorage.removeItem(historyKey);
         
         if (updatedConversations.length > 0) {
@@ -222,12 +229,13 @@ function renameConversation(element){
             const urlParams = new URLSearchParams(window.location.search);
             const departmentType = urlParams.get('department');
             const agentName = urlParams.get('agent');
+            const username = localStorage.getItem('username') || 'anonymous';
             
             const conversations = getConversations(departmentType, agentName);
             const conversation = conversations.find(c => c.id === currentConversationId);
             if(conversation){
                 conversation.title = newName;
-                const key = `conversations_${departmentType}_${agentName}`;
+                const key = `conversations_${username}_${departmentType}_${agentName}`;
                 localStorage.setItem(key, JSON.stringify(conversations));
             }
         }
@@ -247,7 +255,6 @@ function renameConversation(element){
             element.style.display = 'block';
         }
     });
-    
 }
 
 // 初始化会话列表
@@ -255,6 +262,7 @@ async function initializeConversations() {
     const urlParams = new URLSearchParams(window.location.search);
     const departmentType = urlParams.get('department');
     const agentName = urlParams.get('agent');
+    const username = localStorage.getItem('username') || 'anonymous';
     
     if (!departmentType || !agentName) return;
     
@@ -267,7 +275,7 @@ async function initializeConversations() {
     });
     
     // 从localStorage获取当前会话ID
-    const currentKey = `currentConversation_${departmentType}_${agentName}`;
+    const currentKey = `currentConversation_${username}_${departmentType}_${agentName}`;
     const currentId = localStorage.getItem(currentKey);
     
     if (currentId && conversations.some(c => c.id === currentId)) {
@@ -275,6 +283,7 @@ async function initializeConversations() {
     } else if (conversations.length > 0) {
         switchToConversation(departmentType, agentName, conversations[0].id);
     } else {
+        // 如果没有任何会话，创建新会话
         createNewConversation();
     }
 }
@@ -296,6 +305,7 @@ function saveMessageToConversation(message, type) {
     const urlParams = new URLSearchParams(window.location.search);
     const departmentType = urlParams.get('department');
     const agentName = urlParams.get('agent');
+    const username = localStorage.getItem('username') || 'anonymous';
     
     if (departmentType && agentName) {
         const conversations = getConversations(departmentType, agentName);
@@ -305,7 +315,7 @@ function saveMessageToConversation(message, type) {
                 type,
                 content: message
             });
-            const key = `conversations_${departmentType}_${agentName}`;
+            const key = `conversations_${username}_${departmentType}_${agentName}`;
             localStorage.setItem(key, JSON.stringify(conversations));
         }
     }
@@ -332,5 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 添加新建会话按钮事件
     const newChatBtn = document.querySelector('.new-chat-btn');
-    newChatBtn.addEventListener('click', createNewConversation);
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', createNewConversation);
+    }
 });
