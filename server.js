@@ -9,6 +9,8 @@ import fs from 'fs';              // Node.js文件系统模块，用于文件操
 import { createReadStream } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
 
 // 获取当前文件的目录路径
 const __filename = fileURLToPath(import.meta.url);
@@ -16,6 +18,11 @@ const __dirname = dirname(__filename);
 
 // 创建Express应用实例
 const app = express();
+// 创建HTTP服务器
+const server = createServer(app);
+// 创建WebSocket服务器
+const wss = new WebSocketServer({ server });
+
 // 设置服务器端口号
 const port = 3000;
 
@@ -35,6 +42,24 @@ app.get('/home', (req, res) => {
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'home.html'));
+});
+
+// WebSocket连接处理
+wss.on('connection', (ws) => {
+    console.log('Client connected');
+
+    ws.on('message', (message) => {
+        const data = message.toString();
+        if (data === 'close') {
+            console.log('Received close command from client');
+            process.exit(0);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
+        process.exit(0);
+    });
 });
 
 // 添加请求日志中间件，记录所有HTTP请求
@@ -184,12 +209,12 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: err.message });
 });
 
-// 启动服务器
-app.listen(port, () => {
+// 修改服务器启动代码
+server.listen(port, () => {
     console.log(`[${new Date().toLocaleString()}] 服务器启动成功`);
     console.log(`[${new Date().toLocaleString()}] 服务器运行在 http://localhost:${port}`);
     console.log(`[${new Date().toLocaleString()}] 等待文件上传...`);
-}); 
+});
 
 //流式接入DeepSeek
 app.post('/deepseek', async (req, res) => {
