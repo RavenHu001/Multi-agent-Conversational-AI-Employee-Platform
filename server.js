@@ -25,6 +25,18 @@ app.use(cors());
 // 添加 JSON 解析中间件
 app.use(express.json());
 
+// 配置静态文件服务
+app.use(express.static(__dirname));
+
+// 添加明确的路由处理home页面的请求
+app.get('/home', (req, res) => {
+    res.sendFile(path.join(__dirname, 'home.html'));
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'home.html'));
+});
+
 // 添加请求日志中间件，记录所有HTTP请求
 app.use((req, res, next) => {
     // 记录请求时间、方法和URL
