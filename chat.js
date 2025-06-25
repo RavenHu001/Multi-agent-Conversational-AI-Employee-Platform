@@ -1,3 +1,25 @@
+// 配置marked选项
+marked.use({
+    renderer: {
+        image(href, title, text) {
+            // 如果href是对象，说明是完整的图片信息
+            if (typeof href === 'object' && href.href) {
+                return `<img src="${href.href}" alt="${href.text || ''}" style="max-width:300px; max-height:300px; width:auto; height:auto; object-fit:contain;">`;
+            }
+            // 如果是普通URL
+            try {
+                new URL(href); // 验证URL格式
+                return `<img src="${href}" alt="${text || ''}" style="max-width:300px; max-height:300px; width:auto; height:auto; object-fit:contain;">`;
+            } catch (e) {
+                console.error('Invalid image URL:', href);
+                return ''; // 如果URL格式无效，不渲染图片
+            }
+        }
+    },
+    breaks: true, // 支持换行
+    gfm: true    // 启用GitHub风格的markdown
+});
+
 //console.log(localStorage);
 //localStorage.clear();
 document.addEventListener('DOMContentLoaded', async function() {
