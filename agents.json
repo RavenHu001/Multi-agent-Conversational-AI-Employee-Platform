@@ -6,10 +6,17 @@
     "welcome": "你好！我是行政人事助手，有什么我可以帮你的吗？"
   },
   {
-    "name": "新媒体运营助手",
+    "name": "牙齿美颜评估",
     "department-type": "media",
     "avatar": "AI",
-    "welcome": "你好！我是新媒体运营助手，需要我帮你写点什么吗？"
+    "welcome": "你好！我是牙齿美颜评估助手，需要我帮你进行牙齿矫正预估吗？",
+    "description": "牙齿美颜评估是一款基于Coze API的智能助手，可以进行牙齿矫正评估。",
+    "API-URL": "https://api.coze.cn/v3/chat",
+    "API-URL-retrieve": "https://api.coze.cn/v3/chat/retrieve",
+    "API-URL-list": "https://api.coze.cn/v3/chat/message/list",
+    "API-Key": "pat_TBuIs2c5jrvHRwIU4pzWAbomPqlR9wy1lTPnhiwQimsdHsDKzytZDdpBa8BtbHM1",
+    "API-Model": "coze",
+    "bot-id": "7512006130223333428"
   },
   {
     "name": "IT部门助手",

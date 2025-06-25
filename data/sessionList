@@ -1,8 +1,0 @@
-{
-  "id": "会话创建时的日期",
-  "title": "会话标题",
-  "messages": [
-    {"role": "user", "content": "用户输入"},
-    {"role": "assistant", "content": "AI输出"}
-  ]
-}
