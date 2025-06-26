@@ -9,6 +9,8 @@ import fs from 'fs';              // Node.js文件系统模块，用于文件操
 import { createReadStream } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { userDB } from './data_base_functions/codes/user_DB.js'; // 导入用户数据库操作模块
+import { dbUtil } from './data_base_functions/utile/DB_utile.js'; // 导入数据库工具模块
 
 // 获取当前文件的目录路径
 const __filename = fileURLToPath(import.meta.url);
@@ -552,86 +554,96 @@ app.post('/coze/conversation/upload',async(req,res)=>{
 //以下部分为登录注册功能
 
 //登录
-app.post('/user/login',(req,res)=>{
+app.post('/user/login', async (req,res)=>{
     const user_data = req.body;
     console.log(user_data);
-    //从数据库中查询用户名和密码
-    const user_name = user_data.username;
-    const user_password = user_data.password;
-    //从数据库中检测用户名是否存在
-    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
-    const user_datas_array = JSON.parse(user_datas);
-    //尝试从json中获取对应用户对象
-    const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
-    if(!user_data_item){
-        return res.status(400).json({error:"用户名不存在"});
-    }
-    //检测密码是否正确
-    if(user_data_item.password !== user_password){
-        return res.status(400).json({error:"密码错误"});
-    }
-    //如果都成功，则录入登录时间
-    user_datas_array.forEach(item=>{
-        if(item.username === user_name){
-            item.last_login = new Date().toLocaleString();
+    
+    try {
+        // 使用userDB验证用户
+        const user = await userDB.verifyUser(user_data.username, user_data.password);
+        
+        if (!user) {
+            return res.status(400).json({error: "用户名或密码错误"});
         }
-    });
-    //将用户信息写入数据库
-    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
-    //返回用户信息
-    res.json({
-        success:true,
-        message:"登录成功",
-        user_data:user_data_item
-    });
+
+        // 更新登录时间
+        await userDB.updateLoginTime(user.id);
+
+        // 返回用户信息
+        res.json({
+            success: true,
+            message: "登录成功",
+            user_data: user
+        });
+    } catch (error) {
+        console.error('登录失败:', error);
+        res.status(500).json({error: error.message});
+    }
 });
 
 //注册
-app.post('/user/singup',(req,res)=>{
+app.post('/user/singup', async (req,res)=>{
     const user_data = req.body;
     console.log(user_data);
-    //从数据库中查询用户名和密码
-    const user_name = user_data.username;
-    const user_password = user_data.password;
-    //从数据库中检测用户名是否存在
-    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
-    const user_datas_array = JSON.parse(user_datas);
-    const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
-    if(user_data_item){
-        return res.status(400).json({error:"用户名已存在"});
+    
+    try {
+        // 创建新用户
+        const userId = await userDB.createUser({
+            username: user_data.username,
+            password: user_data.password,
+            points: 1000 // 设置用户初始点数
+        });
+
+        res.json({
+            success: true,
+            message: "注册成功",
+            userId: userId
+        });
+    } catch (error) {
+        console.error('注册失败:', error);
+        if (error.message === '用户名已存在') {
+            return res.status(400).json({error: error.message});
+        }
+        res.status(500).json({error: error.message});
     }
-    const init_points = 1000;//设置用户初始点数
-    //将用户名和密码写入数据库
-    user_datas_array.push({username:user_name,password:user_password,points:init_points});//使用push将新用户放入已有用户列表末尾
-    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
-    res.json({success:true,message:"注册成功"});
 });
 
 //以下部分为积分功能
 
 //更新积分
-app.post('/user/update_points',(req,res)=>{
+app.post('/user/update_points', async (req,res)=>{
     const username = req.body.username;
     const is_login = req.body.is_login;
     const points = req.body.points;
-    console.log(username,is_login,points);
-    //检测是否登录
-    if(!is_login){
-        return res.status(400).json({error:"未登录"});
-    }
-    //检测用户名是否存在
-    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
-    const user_datas_array = JSON.parse(user_datas);
-    const user_data_item = user_datas_array.find(item=>item.username === username);
-    if(!user_data_item){
-        return res.status(400).json({error:"用户名不存在"});
-    }
-    //更新积分
-    user_datas_array.forEach(item=>{
-        if(item.username === username){
-            item.points = points;
+    console.log(username, is_login, points);
+
+    try {
+        //检测是否登录
+        if(!is_login){
+            return res.status(400).json({error:"未登录"});
         }
-    });
-    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
-    res.json({success:true,message:"积分更新成功",points:points});
+
+        // 先获取用户信息
+        const users = await dbUtil.query(
+            'SELECT id FROM users WHERE username = ?',
+            [username]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({error:"用户名不存在"});
+        }
+
+        // 更新积分
+        const userId = users[0].id;
+        await userDB.updatePoints(userId, points);
+
+        res.json({
+            success: true,
+            message: "积分更新成功",
+            points: points
+        });
+    } catch (error) {
+        console.error('更新积分失败:', error);
+        res.status(500).json({error: error.message});
+    }
 });
