@@ -1,7 +1,9 @@
 [
   {
+    "id":1,
     "username": "admin",
     "password": "123456",
+    "level": "admin",
     "points": 384,
     "last_login": "2025/6/12 13:19:08"
   }
