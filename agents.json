@@ -41,10 +41,17 @@
     "bot-id": ""
   },
   {
-    "name": "数据部门助手",
+    "name": "健康管理助手",
     "department-type": "Data",
     "avatar": "AI",
-    "welcome": "你好！我是数据部门助手，有什么数据相关的问题吗？"
+    "welcome": "你好！我是健康管理助手，有什么健康管理相关的问题吗？",
+    "description": "健康管理助手是一款基于Coze API的智能助手，可以回答健康管理相关的问题。",
+    "API-URL": "https://api.coze.cn/v3/chat",
+    "API-URL-retrieve": "https://api.coze.cn/v3/chat/retrieve",
+    "API-URL-list": "https://api.coze.cn/v3/chat/message/list",
+    "API-Key": "cztei_h71iJBuptGiHcswI2u0QgftGUR4YMSmtfTBiuYAUsgmf5PMDGfRUEbYYpO1HOQDdb",
+    "API-Model": "coze",
+    "bot-id": "7514236108906643491"
   },
   {
     "name": "智能问数",
