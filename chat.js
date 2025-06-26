@@ -98,13 +98,20 @@ async function checkLoginStatus() {
         loginBtn.style.display = 'none';
         userInfo.style.display = 'flex';
         usernameDisplay.textContent = username;
-        //以登录，读取积分
-        //这里不调用points中方法的原因是，个方法涉及到对后端文件的修改会导致无限刷新屏幕
-        const user_data = await loadConfig('user_functions/data/user_data.json');
-        const user_data_item = user_data.find(item=>item.username === username);
-        const points = user_data_item.points;
         
-        pointsDisplay.textContent = `积分: ${points}`;
+        // 获取用户信息
+        try {
+            const response = await fetch(`http://localhost:3000/user/info?username=${username}&is_login=${isLogin}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                pointsDisplay.textContent = `积分: ${data.user_data.points}`;
+            } else {
+                console.error('获取用户信息失败:', data.error);
+            }
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+        }
     } else {
         // 未登录状态
         loginBtn.style.display = 'block';

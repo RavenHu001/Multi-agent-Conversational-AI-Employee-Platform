@@ -225,6 +225,24 @@ class UserDB {
             throw error;
         }
     }
+
+    /**
+     * 根据用户名获取用户信息
+     * @param {string} username - 用户名
+     * @returns {Object|null} - 用户信息对象
+     */
+    async getUserByUsername(username) {
+        try {
+            const users = await dbUtil.query(
+                'SELECT id, username, level, points, last_login FROM users WHERE username = ?',
+                [username]
+            );
+            return users.length > 0 ? users[0] : null;
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+            throw error;
+        }
+    }
 }
 
 // 导出单例实例

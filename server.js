@@ -647,3 +647,28 @@ app.post('/user/update_points', async (req,res)=>{
         res.status(500).json({error: error.message});
     }
 });
+
+//获取用户信息
+app.get('/user/info', async (req, res) => {
+    const username = req.query.username;
+    const is_login = req.query.is_login === 'true';
+
+    try {
+        if (!is_login) {
+            return res.status(400).json({error: "未登录"});
+        }
+
+        const user = await userDB.getUserByUsername(username);
+        if (!user) {
+            return res.status(400).json({error: "用户不存在"});
+        }
+
+        res.json({
+            success: true,
+            user_data: user
+        });
+    } catch (error) {
+        console.error('获取用户信息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
