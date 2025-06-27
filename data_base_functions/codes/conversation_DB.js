@@ -1,0 +1,163 @@
+import { dbUtil } from '../utile/DB_utile.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 数据库文件路径
+const DB_PATH = path.join(__dirname, '../dataBase/mainDB.sqlite');
+
+class ConversationDB {
+    constructor() {
+        this.initialized = false;
+    }
+
+    /**
+     * 初始化数据库连接并确保历史记录表存在
+     */
+    async init(dbPath = DB_PATH) {
+        if (this.initialized) {
+            return;
+        }
+        
+        try {
+            // 初始化数据库连接
+            await dbUtil.init(dbPath);
+            // 确保历史记录表存在
+            await this.ensureHistoryTable();
+            this.initialized = true;
+        }catch(error){
+            console.error('数据库初始化失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 检查并创建历史记录表
+     */
+    async ensureHistoryTable(){
+        try{
+            //这个表是用来存储会话的，会话的id是conversation_id，用户名是user_name，部门是department，agent是agent，创建时间是created_at，更新时间是updated_at
+            //conversattion_id是会话的唯一id
+            const createTableSQL = `
+                CREATE TABLE IF NOT EXISTS conversations(
+                    conversation_id INTEGER PRIMARY KEY,
+                    conversation_name TEXT NOT NULL,
+                    user_name TEXT NOT NULL,
+                    department TEXT NOT NULL,
+                    agent TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `;
+            await dbUtil.query(createTableSQL);
+        }catch(error){
+            console.error('创建历史记录表失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 创建会话
+     * @param {Object} conversationData.conversation_id - 会话ID
+     * @param {string} conversationData.conversation_name - 会话名称
+     * @param {string} conversationData.user_name - 用户名
+     * @param {string} conversationData.department - 部门
+     * @param {string} conversationData.agent - agent
+     * @returns {Promise<number>} - 创建的会话ID
+     */
+    async createConversation(conversationData){
+        try{
+            // 检查会话是否已存在
+            const existingConversation = await dbUtil.query(
+                'SELECT conversation_id FROM conversations WHERE conversation_id = ?',
+                [conversationData.conversation_id]
+            );
+            
+            if (existingConversation.length > 0) {
+                throw new Error('会话已存在');
+            }
+
+            // 创建会话
+            const newConversation = {
+                conversation_id: conversationData.conversation_id,
+                conversation_name: conversationData.conversation_name,
+                user_name: conversationData.user_name,
+                department: conversationData.department,
+                agent: conversationData.agent
+            }
+
+            await dbUtil.insert('conversations', newConversation);
+            return conversationData.conversation_id;
+        }catch(error){
+            console.error('创建会话失败:', error);
+            throw error;
+        }
+    }
+    /**
+     * 更新会话时间
+     * @param {number} conversationId - 要更新的会话ID
+     * @returns {boolean} - 是否更新成功
+     */
+    async updateConversationTime(conversationId){
+        try{
+            const updateTimeSQL = `
+                UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE conversation_id = ?
+            `;
+            await dbUtil.query(updateTimeSQL, [conversationId]);
+            return true;
+        }catch(error){
+            console.error('更新会话时间失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 删除会话
+     * @param {number} conversationId - 要删除的会话ID
+     * @returns {boolean} - 是否删除成功
+     */
+    async deleteConversation(conversationId){
+        try{
+            // 检查会话是否已存在
+            const existingConversation = await dbUtil.query(
+                'SELECT conversation_id FROM conversations WHERE conversation_id = ?',
+                [conversationId]
+            );
+            
+            if (existingConversation.length === 0) {
+                throw new Error('会话不存在');
+            }
+
+            // 删除会话
+            const result = await dbUtil.delete('conversations', 'conversation_id = ?', [conversationId]);
+            return result > 0;
+        }catch(error){
+            console.error('删除会话失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过用户名，部门，智能体获取会话 
+     * @param {string} user_name - 用户名
+     * @param {string} department - 部门
+     * @param {string} agent - 智能体
+     * @returns {Promise<Object>} - 会话对象
+     */
+    async getConversation(user_name, department, agent){
+        try{
+            const conversations = await dbUtil.query(
+                'SELECT * FROM conversations WHERE user_name = ? AND department = ? AND agent = ? ORDER BY updated_at DESC LIMIT 1',
+                [user_name, department, agent]
+            );
+            return conversations.length > 0 ? conversations[0] : null;
+        }catch(error){
+            console.error('获取会话失败:', error);
+            throw error;
+        }
+    }
+}
+
+export default ConversationDB;
