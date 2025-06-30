@@ -18,17 +18,26 @@ class ConversationDB {
      */
     async init(dbPath = DB_PATH) {
         if (this.initialized) {
+            console.log('会话数据库已经初始化过了');
             return;
         }
         
         try {
+            console.log('开始初始化会话数据库...');
+            console.log('数据库路径:', dbPath);
+            
             // 初始化数据库连接
             await dbUtil.init(dbPath);
+            console.log('数据库连接初始化成功');
+            
             // 确保历史记录表存在
             await this.ensureHistoryTable();
+            console.log('会话表创建/确认成功');
+            
             this.initialized = true;
+            console.log('会话数据库初始化完成');
         }catch(error){
-            console.error('数据库初始化失败:', error);
+            console.error('会话数据库初始化失败:', error);
             throw error;
         }
     }
@@ -38,11 +47,12 @@ class ConversationDB {
      */
     async ensureHistoryTable(){
         try{
+            console.log('开始创建/确认会话表...');
             //这个表是用来存储会话的，会话的id是conversation_id，用户名是user_name，部门是department，agent是agent，创建时间是created_at，更新时间是updated_at
             //conversattion_id是会话的唯一id
             const createTableSQL = `
                 CREATE TABLE IF NOT EXISTS conversations(
-                    conversation_id INTEGER PRIMARY KEY,
+                    conversation_id TEXT PRIMARY KEY,
                     conversation_name TEXT NOT NULL,
                     user_name TEXT NOT NULL,
                     department TEXT NOT NULL,
@@ -52,8 +62,18 @@ class ConversationDB {
                 )
             `;
             await dbUtil.query(createTableSQL);
+            console.log('会话表SQL执行完成');
+            
+            // 验证表是否创建成功
+            const checkTableSQL = "SELECT name FROM sqlite_master WHERE type='table' AND name='conversations'";
+            const tables = await dbUtil.query(checkTableSQL);
+            if (tables.length > 0) {
+                console.log('会话表存在性验证成功');
+            } else {
+                throw new Error('会话表创建失败，表不存在');
+            }
         }catch(error){
-            console.error('创建历史记录表失败:', error);
+            console.error('创建会话表失败:', error);
             throw error;
         }
     }

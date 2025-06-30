@@ -23,6 +23,15 @@ class DBUtil {
             this.#dbFilePath = dbPath;
             const SQL = await initSqlJs();
             
+            // 确保数据库目录存在
+            const dbDir = path.dirname(dbPath);
+            try {
+                await fs.access(dbDir);
+            } catch (err) {
+                // 如果目录不存在，创建目录
+                await fs.mkdir(dbDir, { recursive: true });
+            }
+            
             // 检查数据库文件是否存在
             try {
                 const data = await fs.readFile(dbPath);
@@ -44,10 +53,24 @@ class DBUtil {
      * 保存数据库到文件
      */
     async saveDatabase() {
-        if (!this.#db || !this.#dbFilePath) return;
-        const data = this.#db.export();
-        const buffer = Buffer.from(data);
-        await fs.writeFile(this.#dbFilePath, buffer);
+        if (!this.#db || !this.#dbFilePath) {
+            console.error('数据库或文件路径未初始化');
+            return;
+        }
+        try {
+            // 确保目录存在
+            const dbDir = path.dirname(this.#dbFilePath);
+            await fs.mkdir(dbDir, { recursive: true });
+            
+            // 导出并保存数据库
+            const data = this.#db.export();
+            const buffer = Buffer.from(data);
+            await fs.writeFile(this.#dbFilePath, buffer);
+            console.log(`数据库已保存到: ${this.#dbFilePath}`);
+        } catch (error) {
+            console.error('保存数据库失败:', error);
+            throw error;
+        }
     }
 
     /**
@@ -65,6 +88,12 @@ class DBUtil {
                 results.push(stmt.getAsObject());
             }
             stmt.free();
+            
+            // 如果是CREATE TABLE语句，需要保存数据库文件
+            if (sql.trim().toUpperCase().startsWith('CREATE TABLE')) {
+                await this.saveDatabase();
+            }
+            
             return results;
         } catch (error) {
             console.error('查询执行失败:', error);

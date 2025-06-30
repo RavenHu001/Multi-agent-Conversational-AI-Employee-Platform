@@ -518,20 +518,8 @@ function addMessageToChat(message, type, messageId = null) {
         const conversationId = localStorage.getItem(currentKey);
         
         if (conversationId) {
-            // 保存到会话系统
-            const conversations = getConversations(departmentType, agentName);
-            const conversation = conversations.find(c => c.id === conversationId);
-            if (conversation) {
-                conversation.messages.push({
-                    type,
-                    content: message
-                });
-                const key = `conversations_${username}_${departmentType}_${agentName}`;
-                localStorage.setItem(key, JSON.stringify(conversations));
-            }
-        } else {
-            // 保存到历史记录系统
-            appendMessageToHistory(departmentType, agentName, type, message);
+            // 保存到数据库
+            saveMessageToConversation(message, type);
         }
     }
 }
@@ -695,36 +683,40 @@ function saveChatHistory(department, agent, history) {
     localStorage.setItem(key, JSON.stringify(history));
 }
 
-function loadChatHistoryToUI(department, agent) {
+// 加载聊天历史到UI
+async function loadChatHistoryToUI(department, agent) {
     const username = localStorage.getItem('username') || 'anonymous';
     const chatMessages = document.querySelector('.chat-messages');
     chatMessages.innerHTML = '';
     
-    // 获取当前会话ID
-    const currentKey = `currentConversation_${username}_${department}_${agent}`;
-    const conversationId = localStorage.getItem(currentKey);
-    
-    if (conversationId) {
-        // 从会话系统中加载消息
-        const conversations = getConversations(department, agent);
-        const conversation = conversations.find(c => c.id === conversationId);
-        if (conversation && conversation.messages) {
-            conversation.messages.forEach(item => {
+    try {
+        // 获取当前会话
+        const response = await fetch(`http://localhost:3000/conversation/get?user_name=${username}&department=${department}&agent=${agent}`);
+        if (!response.ok) {
+            throw new Error(`获取会话失败: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        if (data.conversation) {
+            const conversationId = data.conversation.conversation_id;
+            // 获取会话消息
+            const messagesResponse = await fetch(`http://localhost:3000/message/get/${conversationId}`);
+            if (!messagesResponse.ok) {
+                throw new Error(`获取消息失败: ${messagesResponse.status}`);
+            }
+            const messagesData = await messagesResponse.json();
+            const messages = messagesData.messages || [];
+            
+            // 显示消息
+            messages.forEach(message => {
                 const messageElement = document.createElement('div');
-                messageElement.className = `message ${item.type}-message`;
-                messageElement.innerHTML = createMessageContent(item.content, item.type);
+                messageElement.className = `message ${message.message_type}-message`;
+                messageElement.innerHTML = createMessageContent(message.message_content, message.message_type);
                 chatMessages.appendChild(messageElement);
             });
         }
-    } else {
-        // 如果没有当前会话，从历史记录系统加载
-        const history = getChatHistory(department, agent);
-        history.forEach(item => {
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${item.type}-message`;
-            messageElement.innerHTML = createMessageContent(item.message, item.type);
-            chatMessages.appendChild(messageElement);
-        });
+    } catch (error) {
+        console.error('加载聊天历史失败:', error);
     }
     
     chatMessages.scrollTop = chatMessages.scrollHeight;

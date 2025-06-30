@@ -18,17 +18,26 @@ class MessageDB {
      */
     async init(dbPath = DB_PATH) {
         if (this.initialized) {
+            console.log('消息数据库已经初始化过了');
             return;
         }
         
         try {
+            console.log('开始初始化消息数据库...');
+            console.log('数据库路径:', dbPath);
+            
             // 初始化数据库连接
             await dbUtil.init(dbPath);
+            console.log('数据库连接初始化成功');
+            
             // 确保消息表存在
             await this.ensureMessageTable();
+            console.log('消息表创建/确认成功');
+            
             this.initialized = true;
+            console.log('消息数据库初始化完成');
         }catch(error){
-            console.error('数据库初始化失败:', error);
+            console.error('消息数据库初始化失败:', error);
             throw error;
         }
     }
@@ -38,18 +47,30 @@ class MessageDB {
      */
     async ensureMessageTable(){
         try{
+            console.log('开始创建/确认消息表...');
             //conversation_id是第一主键，message_id是第二主键，需要确保第二主键在被插入时有自增
             const createTableSQL = `
                 CREATE TABLE IF NOT EXISTS messages(
-                    conversation_id INTEGER NOT NULL,
+                    conversation_id TEXT NOT NULL,
                     message_id INTEGER NOT NULL,
                     message_content TEXT NOT NULL,
                     message_type TEXT NOT NULL,
                     message_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (conversation_id, message_id)
+                    PRIMARY KEY (conversation_id, message_id),
+                    FOREIGN KEY (conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE
                 )
             `;
             await dbUtil.query(createTableSQL);
+            console.log('消息表SQL执行完成');
+            
+            // 验证表是否创建成功
+            const checkTableSQL = "SELECT name FROM sqlite_master WHERE type='table' AND name='messages'";
+            const tables = await dbUtil.query(checkTableSQL);
+            if (tables.length > 0) {
+                console.log('消息表存在性验证成功');
+            } else {
+                throw new Error('消息表创建失败，表不存在');
+            }
         }catch(error){
             console.error('创建消息表失败:', error);
             throw error;

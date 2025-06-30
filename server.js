@@ -21,14 +21,20 @@ const messageDB = new MessageDB();
 // 初始化数据库
 (async () => {
     try {
+        // 先初始化用户数据库
         await userDB.init();
-        console.log('[${new Date().toLocaleString()}] 用户数据库初始化成功');
+        console.log(`[${new Date().toLocaleString()}] 用户数据库初始化成功`);
+        
+        // 再初始化会话数据库
         await conversationDB.init();
-        console.log('[${new Date().toLocaleString()}] 会话数据库初始化成功');
+        console.log(`[${new Date().toLocaleString()}] 会话数据库初始化成功`);
+        
+        // 最后初始化消息数据库（因为它依赖于会话表）
         await messageDB.init();
-        console.log('[${new Date().toLocaleString()}] 消息数据库初始化成功');
+        console.log(`[${new Date().toLocaleString()}] 消息数据库初始化成功`);
     } catch (error) {
-        console.error('[${new Date().toLocaleString()}] 数据库初始化失败:', error);
+        console.error(`[${new Date().toLocaleString()}] 数据库初始化失败:`, error);
+        process.exit(1); // 如果数据库初始化失败，终止服务器
     }
 })();
 
