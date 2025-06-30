@@ -210,33 +210,60 @@ async function switchToConversation(department, agent, conversationId) {
 
 // 删除会话
 async function deleteConversation(department, agent, conversationId) {
+    if (!confirm('确定要删除这个会话吗？相关的所有对话记录也会被删除。')) {
+        return;
+    }
+
     try {
+        console.log('开始删除会话:', conversationId);
+        
         // 调用服务器API删除会话
         const response = await fetch(`http://localhost:3000/conversation/delete/${conversationId}`, {
             method: 'DELETE'
         });
 
+        const result = await response.json();
+        console.log('删除会话响应:', result);
+
         if (!response.ok) {
-            throw new Error(`删除会话失败: ${response.status}`);
+            throw new Error(result.error || '删除会话失败');
+        }
+
+        if (!result.success) {
+            throw new Error(result.message || '删除会话失败');
         }
 
         // 移除UI元素
         const conversationElement = document.querySelector(`.conversation-item[data-conversation-id="${conversationId}"]`);
         if (conversationElement) {
             conversationElement.remove();
+            console.log('会话元素已从UI中移除');
+        } else {
+            console.warn('未找到要删除的会话元素:', conversationId);
         }
         
         // 如果删除的是当前会话，切换到其他会话或创建新会话
         if (conversationId === currentConversationId) {
             const conversations = await getConversations(department, agent);
             if (conversations.length > 0) {
+                console.log('切换到其他会话');
                 await switchToConversation(department, agent, conversations[0].conversation_id);
             } else {
+                console.log('创建新会话');
                 await createNewConversation();
             }
         }
+
+        // 从localStorage中移除会话记录
+        const username = localStorage.getItem('username') || 'anonymous';
+        const currentKey = `conversations_${username}_${department}_${agent}`;
+        localStorage.removeItem(currentKey);
+        console.log('本地存储的会话记录已清除');
+
+        alert('会话删除成功！');
     } catch (error) {
         console.error('删除会话失败:', error);
+        alert(`删除会话失败: ${error.message}`);
     }
 }
 

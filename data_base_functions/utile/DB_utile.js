@@ -41,6 +41,10 @@ class DBUtil {
                 this.#db = new SQL.Database();
                 await this.saveDatabase();
             }
+
+            // 启用外键约束
+            await this.query('PRAGMA foreign_keys = ON;');
+            console.log('外键约束已启用');
             
             return true;
         } catch (error) {

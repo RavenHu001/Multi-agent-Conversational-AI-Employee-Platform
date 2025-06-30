@@ -746,3 +746,10 @@ function removeMessage(messageId) {
         messageElement.remove();
     }
 }
+
+function clearChatArea() {
+    const chatMessages = document.querySelector('.chat-messages');
+    if (chatMessages) {
+        chatMessages.innerHTML = '';
+    }
+}

@@ -758,15 +758,46 @@ app.put('/conversation/update_time/:conversationId', async (req, res) => {
 app.delete('/conversation/delete/:conversationId', async (req, res) => {
     try {
         const conversationId = req.params.conversationId;
+        console.log(`[${new Date().toLocaleString()}] 开始删除会话: ${conversationId}`);
+
+        // 先检查会话是否存在
+        const existingConversation = await dbUtil.query(
+            'SELECT * FROM conversations WHERE conversation_id = ?',
+            [conversationId]
+        );
+
+        if (!existingConversation || existingConversation.length === 0) {
+            console.log(`[${new Date().toLocaleString()}] 会话不存在: ${conversationId}`);
+            return res.status(404).json({
+                success: false,
+                message: "会话不存在"
+            });
+        }
+
+        console.log(`[${new Date().toLocaleString()}] 找到要删除的会话:`, existingConversation[0]);
+
+        // 删除会话（消息会通过外键CASCADE自动删除）
         const success = await conversationDB.deleteConversation(conversationId);
         
-        res.json({
-            success: success,
-            message: "会话删除成功"
-        });
+        if (success) {
+            console.log(`[${new Date().toLocaleString()}] 会话删除成功: ${conversationId}`);
+            res.json({
+                success: true,
+                message: "会话及相关消息删除成功"
+            });
+        } else {
+            console.log(`[${new Date().toLocaleString()}] 会话删除失败: ${conversationId}`);
+            res.status(500).json({
+                success: false,
+                message: "删除会话失败"
+            });
+        }
     } catch (error) {
-        console.error('[${new Date().toLocaleString()}] 删除会话失败:', error);
-        res.status(500).json({error: error.message});
+        console.error(`[${new Date().toLocaleString()}] 删除会话失败:`, error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
 });
 
@@ -799,6 +830,20 @@ app.get('/message/get/:conversationId', async (req, res) => {
         });
     } catch (error) {
         console.error('[${new Date().toLocaleString()}] 获取消息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 获取所有会话（用于调试）
+app.get('/conversation/all', async (req, res) => {
+    try {
+        const result = await dbUtil.query('SELECT * FROM conversations');
+        res.json({
+            success: true,
+            conversations: result
+        });
+    } catch (error) {
+        console.error('获取所有会话失败:', error);
         res.status(500).json({error: error.message});
     }
 });

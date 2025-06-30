@@ -139,23 +139,43 @@ class ConversationDB {
      * @param {number} conversationId - 要删除的会话ID
      * @returns {boolean} - 是否删除成功
      */
-    async deleteConversation(conversationId){
-        try{
-            // 检查会话是否已存在
+    async deleteConversation(conversationId) {
+        try {
+            console.log(`[${new Date().toLocaleString()}] 开始删除会话，ID: ${conversationId}`);
+
+            // 检查会话是否存在
             const existingConversation = await dbUtil.query(
-                'SELECT conversation_id FROM conversations WHERE conversation_id = ?',
+                'SELECT * FROM conversations WHERE conversation_id = ?',
                 [conversationId]
             );
-            
-            if (existingConversation.length === 0) {
+
+            if (!existingConversation || existingConversation.length === 0) {
+                console.log(`[${new Date().toLocaleString()}] 会话不存在: ${conversationId}`);
                 throw new Error('会话不存在');
             }
 
-            // 删除会话
-            const result = await dbUtil.delete('conversations', 'conversation_id = ?', [conversationId]);
-            return result > 0;
-        }catch(error){
-            console.error('删除会话失败:', error);
+            // 删除会话（消息会通过外键CASCADE自动删除）
+            const changes = await dbUtil.delete('conversations', 'conversation_id = ?', [conversationId]);
+            console.log(`[${new Date().toLocaleString()}] 会话删除完成，影响行数: ${changes}`);
+
+            // 验证消息是否被删除
+            const remainingMessages = await dbUtil.query(
+                'SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?',
+                [conversationId]
+            );
+            
+            if (remainingMessages[0].count > 0) {
+                console.warn(`[${new Date().toLocaleString()}] 警告：仍有 ${remainingMessages[0].count} 条相关消息未被删除`);
+                // 手动删除剩余消息
+                await dbUtil.query('DELETE FROM messages WHERE conversation_id = ?', [conversationId]);
+                console.log(`[${new Date().toLocaleString()}] 已手动清理剩余消息`);
+            } else {
+                console.log(`[${new Date().toLocaleString()}] 所有相关消息已被成功删除`);
+            }
+
+            return changes > 0;
+        } catch (error) {
+            console.error(`[${new Date().toLocaleString()}] 删除会话失败:`, error);
             throw error;
         }
     }

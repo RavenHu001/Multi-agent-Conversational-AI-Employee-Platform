@@ -212,7 +212,9 @@
 .conversation-item {
     display: flex;
     align-items: center;
-    padding: 7px 12px;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -615,4 +617,20 @@
 
 .points-modal-close:hover {
     background-color: #1976d2;
+}
+
+.delete-btn {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.delete-btn:hover {
+    background-color: #ff3333;
 }
