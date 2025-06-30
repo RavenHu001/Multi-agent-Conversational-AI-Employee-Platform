@@ -514,7 +514,7 @@ function addMessageToChat(message, type, messageId = null) {
         const username = localStorage.getItem('username') || 'anonymous';
         
         // 获取当前会话ID
-        const currentKey = `currentConversation_${username}_${departmentType}_${agentName}`;
+        const currentKey = `conversations_${username}_${departmentType}_${agentName}`;
         const conversationId = localStorage.getItem(currentKey);
         
         if (conversationId) {
@@ -699,6 +699,10 @@ async function loadChatHistoryToUI(department, agent) {
         
         if (data.conversation) {
             const conversationId = data.conversation.conversation_id;
+            // 存储会话ID
+            const currentKey = `conversations_${username}_${department}_${agent}`;
+            localStorage.setItem(currentKey, conversationId);
+            
             // 获取会话消息
             const messagesResponse = await fetch(`http://localhost:3000/message/get/${conversationId}`);
             if (!messagesResponse.ok) {

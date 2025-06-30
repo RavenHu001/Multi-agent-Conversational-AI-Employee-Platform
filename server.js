@@ -741,7 +741,7 @@ app.get('/conversation/get', async (req, res) => {
 // 更新会话时间
 app.put('/conversation/update_time/:conversationId', async (req, res) => {
     try {
-        const conversationId = parseInt(req.params.conversationId);
+        const conversationId = req.params.conversationId;
         const success = await conversationDB.updateConversationTime(conversationId);
         
         res.json({
@@ -757,7 +757,7 @@ app.put('/conversation/update_time/:conversationId', async (req, res) => {
 // 删除会话
 app.delete('/conversation/delete/:conversationId', async (req, res) => {
     try {
-        const conversationId = parseInt(req.params.conversationId);
+        const conversationId = req.params.conversationId;
         const success = await conversationDB.deleteConversation(conversationId);
         
         res.json({
@@ -790,7 +790,7 @@ app.post('/message/create', async (req, res) => {
 // 获取会话的所有消息
 app.get('/message/get/:conversationId', async (req, res) => {
     try {
-        const conversationId = parseInt(req.params.conversationId);
+        const conversationId = req.params.conversationId;
         const messages = await messageDB.getMessages(conversationId);
         
         res.json({
