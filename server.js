@@ -11,6 +11,26 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { userDB } from './data_base_functions/codes/user_DB.js'; // 导入用户数据库操作模块
 import { dbUtil } from './data_base_functions/utile/DB_utile.js'; // 导入数据库工具模块
+import ConversationDB from './data_base_functions/codes/conversation_DB.js'; // 导入会话数据库操作模块
+import MessageDB from './data_base_functions/codes/message_DB.js'; // 导入消息数据库操作模块
+
+// 创建数据库实例
+const conversationDB = new ConversationDB();
+const messageDB = new MessageDB();
+
+// 初始化数据库
+(async () => {
+    try {
+        await userDB.init();
+        console.log('[${new Date().toLocaleString()}] 用户数据库初始化成功');
+        await conversationDB.init();
+        console.log('[${new Date().toLocaleString()}] 会话数据库初始化成功');
+        await messageDB.init();
+        console.log('[${new Date().toLocaleString()}] 消息数据库初始化成功');
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 数据库初始化失败:', error);
+    }
+})();
 
 // 获取当前文件的目录路径
 const __filename = fileURLToPath(import.meta.url);
@@ -551,7 +571,7 @@ app.post('/coze/conversation/upload',async(req,res)=>{
     }
 });
 
-//以下部分为登录注册功能
+//以下是服务器与联通前端与数据库的接口
 
 //登录
 app.post('/user/login', async (req,res)=>{
@@ -669,6 +689,110 @@ app.get('/user/info', async (req, res) => {
         });
     } catch (error) {
         console.error('获取用户信息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+//以下为会话和消息相关的API接口
+
+// 创建新会话
+app.post('/conversation/create', async (req, res) => {
+    try {
+        const conversationData = req.body;
+        const conversationId = await conversationDB.createConversation(conversationData);
+        
+        res.json({
+            success: true,
+            message: "会话创建成功",
+            conversation_id: conversationId
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 创建会话失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 获取会话信息
+app.get('/conversation/get', async (req, res) => {
+    try {
+        const { user_name, department, agent } = req.query;
+        const conversation = await conversationDB.getConversation(user_name, department, agent);
+        
+        if (!conversation) {
+            return res.status(404).json({error: "会话不存在"});
+        }
+        
+        res.json({
+            success: true,
+            conversation: conversation
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 获取会话失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 更新会话时间
+app.put('/conversation/update_time/:conversationId', async (req, res) => {
+    try {
+        const conversationId = parseInt(req.params.conversationId);
+        const success = await conversationDB.updateConversationTime(conversationId);
+        
+        res.json({
+            success: success,
+            message: "会话时间更新成功"
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 更新会话时间失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 删除会话
+app.delete('/conversation/delete/:conversationId', async (req, res) => {
+    try {
+        const conversationId = parseInt(req.params.conversationId);
+        const success = await conversationDB.deleteConversation(conversationId);
+        
+        res.json({
+            success: success,
+            message: "会话删除成功"
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 删除会话失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 创建新消息
+app.post('/message/create', async (req, res) => {
+    try {
+        const messageData = req.body;
+        const messageId = await messageDB.createMessage(messageData);
+        
+        res.json({
+            success: true,
+            message: "消息创建成功",
+            message_id: messageId
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 创建消息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 获取会话的所有消息
+app.get('/message/get/:conversationId', async (req, res) => {
+    try {
+        const conversationId = parseInt(req.params.conversationId);
+        const messages = await messageDB.getMessages(conversationId);
+        
+        res.json({
+            success: true,
+            messages: messages
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 获取消息失败:', error);
         res.status(500).json({error: error.message});
     }
 });
