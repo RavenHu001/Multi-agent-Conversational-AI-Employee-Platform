@@ -58,7 +58,8 @@ class ConversationDB {
                     department TEXT NOT NULL,
                     agent TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_name) REFERENCES users(username) ON DELETE CASCADE
                 )
             `;
             await dbUtil.query(createTableSQL);
