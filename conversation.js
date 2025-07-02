@@ -90,7 +90,7 @@ async function getConversations(department, agent) {
             throw new Error(`获取会话失败: ${response.status}`);
         }
         const data = await response.json();
-        return data.conversation ? [data.conversation] : [];
+        return data.conversations || [];
     } catch (error) {
         console.error('获取会话失败:', error);
         return [];

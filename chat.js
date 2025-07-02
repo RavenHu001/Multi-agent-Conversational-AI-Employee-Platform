@@ -691,14 +691,10 @@ async function loadChatHistoryToUI(department, agent) {
     
     try {
         // 获取当前会话
-        const response = await fetch(`http://localhost:3000/conversation/get?user_name=${username}&department=${department}&agent=${agent}`);
-        if (!response.ok) {
-            throw new Error(`获取会话失败: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        if (data.conversation) {
-            const conversationId = data.conversation.conversation_id;
+        const conversations = await getConversations(department, agent);
+        if (conversations && conversations.length > 0) {
+            const conversation = conversations[0]; // 获取最新的会话
+            const conversationId = conversation.conversation_id;
             // 存储会话ID
             const currentKey = `conversations_${username}_${department}_${agent}`;
             localStorage.setItem(currentKey, conversationId);

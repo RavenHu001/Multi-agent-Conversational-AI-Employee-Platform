@@ -190,10 +190,10 @@ class ConversationDB {
     async getConversation(user_name, department, agent){
         try{
             const conversations = await dbUtil.query(
-                'SELECT * FROM conversations WHERE user_name = ? AND department = ? AND agent = ? ORDER BY updated_at DESC LIMIT 1',
+                'SELECT * FROM conversations WHERE user_name = ? AND department = ? AND agent = ? ORDER BY updated_at DESC',
                 [user_name, department, agent]
             );
-            return conversations.length > 0 ? conversations[0] : null;
+            return conversations.length > 0 ? conversations: null;
         }catch(error){
             console.error('获取会话失败:', error);
             throw error;

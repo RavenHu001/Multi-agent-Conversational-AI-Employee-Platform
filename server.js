@@ -722,18 +722,18 @@ app.post('/conversation/create', async (req, res) => {
 app.get('/conversation/get', async (req, res) => {
     try {
         const { user_name, department, agent } = req.query;
-        const conversation = await conversationDB.getConversation(user_name, department, agent);
+        const conversations = await conversationDB.getConversation(user_name, department, agent);
         
-        if (!conversation) {
+        if (!conversations || conversations.length === 0) {
             return res.status(404).json({error: "会话不存在"});
         }
         
         res.json({
             success: true,
-            conversation: conversation
+            conversations: conversations
         });
     } catch (error) {
-        console.error('[${new Date().toLocaleString()}] 获取会话失败:', error);
+        console.error(`[${new Date().toLocaleString()}] 获取会话失败:`, error);
         res.status(500).json({error: error.message});
     }
 });
