@@ -864,3 +864,87 @@ app.get('/conversation/all', async (req, res) => {
         res.status(500).json({error: error.message});
     }
 });
+
+// 管理员相关的API路由
+
+// 获取所有用户列表
+app.get('/admin/users', async (req, res) => {
+    try {
+        const result = await dbUtil.query(
+            'SELECT id, username, level, points, last_login FROM users'
+        );
+        res.json({
+            success: true,
+            users: result
+        });
+    } catch (error) {
+        console.error('获取用户列表失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 创建新用户
+app.post('/admin/users/create', async (req, res) => {
+    try {
+        const userData = req.body;
+        const userId = await userDB.createUser(userData);
+        
+        res.json({
+            success: true,
+            message: "用户创建成功",
+            userId: userId
+        });
+    } catch (error) {
+        console.error('创建用户失败:', error);
+        if (error.message === '用户名已存在') {
+            return res.status(400).json({error: error.message});
+        }
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 更新用户信息
+app.put('/admin/users/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const updates = req.body;
+        
+        // 更新权限等级
+        if (updates.level) {
+            await userDB.updateUserLevel(userId, updates.level);
+        }
+        
+        // 更新点数
+        if (updates.points !== undefined) {
+            await userDB.updatePoints(userId, updates.points);
+        }
+        
+        res.json({
+            success: true,
+            message: "用户信息更新成功"
+        });
+    } catch (error) {
+        console.error('更新用户信息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 删除用户
+app.delete('/admin/users/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const success = await userDB.deleteUser(userId);
+        
+        if (success) {
+            res.json({
+                success: true,
+                message: "用户删除成功"
+            });
+        } else {
+            throw new Error("删除用户失败");
+        }
+    } catch (error) {
+        console.error('删除用户失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});

@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         checkLoginStatus();
     });
 
+    // 设置管理员按钮事件
+    document.getElementById('admin-btn').addEventListener('click', function() {
+        window.location.href = 'user_functions/pages/admin.html';
+    });
+
     try {
         const departments = await loadConfig('department.json');
         console.log('Department:', departments);
@@ -25,22 +30,39 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // 检查登录状态并更新UI
-function checkLoginStatus() {
+async function checkLoginStatus() {
     const isLogin = localStorage.getItem('is_login');
     const username = localStorage.getItem('username');
     const loginBtn = document.getElementById('login-btn');
     const userInfo = document.getElementById('user-info');
     const usernameDisplay = document.getElementById('username-display');
+    const adminBtn = document.getElementById('admin-btn');
 
     if (isLogin==='true'&&username) {
         // 已登录状态
         loginBtn.style.display = 'none';
         userInfo.style.display = 'flex';
         usernameDisplay.textContent = username;
+
+        // 检查是否为管理员
+        try {
+            const response = await fetch(`http://localhost:3000/user/info?username=${username}&is_login=${isLogin}`);
+            const data = await response.json();
+            
+            if (data.success && data.user_data.level === 'admin') {
+                adminBtn.style.display = 'inline-block';
+            } else {
+                adminBtn.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+            adminBtn.style.display = 'none';
+        }
     } else {
         // 未登录状态
         loginBtn.style.display = 'block';
         userInfo.style.display = 'none';
+        adminBtn.style.display = 'none';
         // 清除可能存在的无效登录状态
         localStorage.removeItem('username');
         localStorage.removeItem('is_login');

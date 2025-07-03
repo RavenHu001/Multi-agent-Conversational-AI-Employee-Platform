@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="user_pages.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 添加管理员信息区域 -->
+        <div class="admin-header admin-section">
+            <div class="admin-info">
+                <span>当前管理员：</span>
+                <span id="currentAdmin" class="admin-name"></span>
+            </div>
+            <button onclick="window.location.href='/home.html'" class="btn btn-primary">返回首页</button>
+        </div>
+
+        <div class="admin-section">
+            <h2>创建新用户</h2>
+            <form id="createUserForm" class="user-form">
+                <div class="form-group">
+                    <label for="newUsername">用户名</label>
+                    <input type="text" id="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">密码</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="newLevel">权限等级</label>
+                    <select id="newLevel" required>
+                        <option value="user">普通用户</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="newPoints">初始点数</label>
+                    <input type="number" id="newPoints" value="1000" min="0" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">创建用户</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-section">
+            <h2>用户列表</h2>
+            <div id="statusMessage"></div>
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>权限等级</th>
+                        <th>点数</th>
+                        <th>最后登录时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="usersList">
+                    <!-- 用户列表将通过JavaScript动态填充 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 编辑用户弹窗 -->
+    <div id="editUserModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;">
+        <h3>编辑用户</h3>
+        <form id="editUserForm" class="user-form">
+            <input type="hidden" id="editUserId">
+            <input type="hidden" id="editUsername">
+            <div class="form-group">
+                <label for="editLevel">权限等级</label>
+                <select id="editLevel" required>
+                    <option value="user">普通用户</option>
+                    <option value="admin">管理员</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editPoints">点数</label>
+                <input type="number" id="editPoints" min="0" required>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <button type="button" class="btn btn-danger" onclick="closeEditModal()">取消</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="../codes/admin.js"></script>
+</body>
+</html>
