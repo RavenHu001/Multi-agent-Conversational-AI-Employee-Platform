@@ -9,6 +9,34 @@ import fs from 'fs';              // Node.js文件系统模块，用于文件操
 import { createReadStream } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { userDB } from './data_base_functions/codes/user_DB.js'; // 导入用户数据库操作模块
+import { dbUtil } from './data_base_functions/utile/DB_utile.js'; // 导入数据库工具模块
+import ConversationDB from './data_base_functions/codes/conversation_DB.js'; // 导入会话数据库操作模块
+import MessageDB from './data_base_functions/codes/message_DB.js'; // 导入消息数据库操作模块
+
+// 创建数据库实例
+const conversationDB = new ConversationDB();
+const messageDB = new MessageDB();
+
+// 初始化数据库
+(async () => {
+    try {
+        // 先初始化用户数据库
+        await userDB.init();
+        console.log(`[${new Date().toLocaleString()}] 用户数据库初始化成功`);
+        
+        // 再初始化会话数据库
+        await conversationDB.init();
+        console.log(`[${new Date().toLocaleString()}] 会话数据库初始化成功`);
+        
+        // 最后初始化消息数据库（因为它依赖于会话表）
+        await messageDB.init();
+        console.log(`[${new Date().toLocaleString()}] 消息数据库初始化成功`);
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 数据库初始化失败:`, error);
+        process.exit(1); // 如果数据库初始化失败，终止服务器
+    }
+})();
 
 // 获取当前文件的目录路径
 const __filename = fileURLToPath(import.meta.url);
@@ -549,89 +577,290 @@ app.post('/coze/conversation/upload',async(req,res)=>{
     }
 });
 
-//以下部分为登录注册功能
+//以下是服务器与联通前端与数据库的接口
 
 //登录
-app.post('/user/login',(req,res)=>{
+app.post('/user/login', async (req,res)=>{
     const user_data = req.body;
     console.log(user_data);
-    //从数据库中查询用户名和密码
-    const user_name = user_data.username;
-    const user_password = user_data.password;
-    //从数据库中检测用户名是否存在
-    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
-    const user_datas_array = JSON.parse(user_datas);
-    //尝试从json中获取对应用户对象
-    const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
-    if(!user_data_item){
-        return res.status(400).json({error:"用户名不存在"});
-    }
-    //检测密码是否正确
-    if(user_data_item.password !== user_password){
-        return res.status(400).json({error:"密码错误"});
-    }
-    //如果都成功，则录入登录时间
-    user_datas_array.forEach(item=>{
-        if(item.username === user_name){
-            item.last_login = new Date().toLocaleString();
+    
+    try {
+        // 使用userDB验证用户
+        const user = await userDB.verifyUser(user_data.username, user_data.password);
+        
+        if (!user) {
+            return res.status(400).json({error: "用户名或密码错误"});
         }
-    });
-    //将用户信息写入数据库
-    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
-    //返回用户信息
-    res.json({
-        success:true,
-        message:"登录成功",
-        user_data:user_data_item
-    });
+
+        // 更新登录时间
+        await userDB.updateLoginTime(user.id);
+
+        // 返回用户信息
+        res.json({
+            success: true,
+            message: "登录成功",
+            user_data: user
+        });
+    } catch (error) {
+        console.error('登录失败:', error);
+        res.status(500).json({error: error.message});
+    }
 });
 
 //注册
-app.post('/user/singup',(req,res)=>{
+app.post('/user/singup', async (req,res)=>{
     const user_data = req.body;
     console.log(user_data);
-    //从数据库中查询用户名和密码
-    const user_name = user_data.username;
-    const user_password = user_data.password;
-    //从数据库中检测用户名是否存在
-    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
-    const user_datas_array = JSON.parse(user_datas);
-    const user_data_item = user_datas_array.find(item=>item.username === user_name);//从json中检测用户名是否存在
-    if(user_data_item){
-        return res.status(400).json({error:"用户名已存在"});
+    
+    try {
+        // 创建新用户
+        const userId = await userDB.createUser({
+            username: user_data.username,
+            password: user_data.password,
+            points: 1000 // 设置用户初始点数
+        });
+
+        res.json({
+            success: true,
+            message: "注册成功",
+            userId: userId
+        });
+    } catch (error) {
+        console.error('注册失败:', error);
+        if (error.message === '用户名已存在') {
+            return res.status(400).json({error: error.message});
+        }
+        res.status(500).json({error: error.message});
     }
-    const init_points = 1000;//设置用户初始点数
-    //将用户名和密码写入数据库
-    user_datas_array.push({username:user_name,password:user_password,points:init_points});//使用push将新用户放入已有用户列表末尾
-    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
-    res.json({success:true,message:"注册成功"});
 });
 
 //以下部分为积分功能
 
 //更新积分
-app.post('/user/update_points',(req,res)=>{
+app.post('/user/update_points', async (req,res)=>{
     const username = req.body.username;
     const is_login = req.body.is_login;
     const points = req.body.points;
-    console.log(username,is_login,points);
-    //检测是否登录
-    if(!is_login){
-        return res.status(400).json({error:"未登录"});
-    }
-    //检测用户名是否存在
-    const user_datas = fs.readFileSync('user_functions/data/user_data.json','utf-8');
-    const user_datas_array = JSON.parse(user_datas);
-    const user_data_item = user_datas_array.find(item=>item.username === username);
-    if(!user_data_item){
-        return res.status(400).json({error:"用户名不存在"});
-    }
-    //更新积分
-    user_datas_array.forEach(item=>{
-        if(item.username === username){
-            item.points = points;
+    console.log(username, is_login, points);
+
+    try {
+        //检测是否登录
+        if(!is_login){
+            return res.status(400).json({error:"未登录"});
         }
-    });
-    fs.writeFileSync('user_functions/data/user_data.json',JSON.stringify(user_datas_array,null,2));
-    res.json({success:true,message:"积分更新成功",points:points});
+
+        // 先获取用户信息
+        const users = await dbUtil.query(
+            'SELECT id FROM users WHERE username = ?',
+            [username]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({error:"用户名不存在"});
+        }
+
+        // 更新积分
+        const userId = users[0].id;
+        await userDB.updatePoints(userId, points);
+
+        res.json({
+            success: true,
+            message: "积分更新成功",
+            points: points
+        });
+    } catch (error) {
+        console.error('更新积分失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+//获取用户信息
+app.get('/user/info', async (req, res) => {
+    const username = req.query.username;
+    const is_login = req.query.is_login === 'true';
+
+    try {
+        if (!is_login) {
+            return res.status(400).json({error: "未登录"});
+        }
+
+        const user = await userDB.getUserByUsername(username);
+        if (!user) {
+            return res.status(400).json({error: "用户不存在"});
+        }
+
+        res.json({
+            success: true,
+            user_data: user
+        });
+    } catch (error) {
+        console.error('获取用户信息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+//以下为会话和消息相关的API接口
+
+// 创建新会话
+app.post('/conversation/create', async (req, res) => {
+    try {
+        const conversationData = req.body;
+        const conversationId = await conversationDB.createConversation(conversationData);
+        
+        res.json({
+            success: true,
+            message: "会话创建成功",
+            conversation_id: conversationId
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 创建会话失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 获取会话信息
+app.get('/conversation/get', async (req, res) => {
+    try {
+        const { user_name, department, agent } = req.query;
+        const conversations = await conversationDB.getConversation(user_name, department, agent);
+        
+        if (!conversations || conversations.length === 0) {
+            return res.status(404).json({error: "会话不存在"});
+        }
+        
+        res.json({
+            success: true,
+            conversations: conversations
+        });
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 获取会话失败:`, error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 更新会话时间
+app.put('/conversation/update_time/:conversationId', async (req, res) => {
+    try {
+        const conversationId = req.params.conversationId;
+        const success = await conversationDB.updateConversationTime(conversationId);
+        
+        res.json({
+            success: success,
+            message: "会话时间更新成功"
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 更新会话时间失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 更新会话名称
+app.put('/conversation/update_name/:conversationId', async (req, res) => {
+    try {
+        const conversationId = req.params.conversationId;
+        const conversationName = req.body.name;
+        const success = await conversationDB.updateConversationName(conversationId, conversationName);
+        
+        res.json({
+            success: success,
+            message: "会话名称更新成功"
+        });
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 更新会话名称失败:`, error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 删除会话
+app.delete('/conversation/delete/:conversationId', async (req, res) => {
+    try {
+        const conversationId = req.params.conversationId;
+        console.log(`[${new Date().toLocaleString()}] 开始删除会话: ${conversationId}`);
+
+        // 先检查会话是否存在
+        const existingConversation = await dbUtil.query(
+            'SELECT * FROM conversations WHERE conversation_id = ?',
+            [conversationId]
+        );
+
+        if (!existingConversation || existingConversation.length === 0) {
+            console.log(`[${new Date().toLocaleString()}] 会话不存在: ${conversationId}`);
+            return res.status(404).json({
+                success: false,
+                message: "会话不存在"
+            });
+        }
+
+        console.log(`[${new Date().toLocaleString()}] 找到要删除的会话:`, existingConversation[0]);
+
+        // 删除会话（消息会通过外键CASCADE自动删除）
+        const success = await conversationDB.deleteConversation(conversationId);
+        
+        if (success) {
+            console.log(`[${new Date().toLocaleString()}] 会话删除成功: ${conversationId}`);
+            res.json({
+                success: true,
+                message: "会话及相关消息删除成功"
+            });
+        } else {
+            console.log(`[${new Date().toLocaleString()}] 会话删除失败: ${conversationId}`);
+            res.status(500).json({
+                success: false,
+                message: "删除会话失败"
+            });
+        }
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 删除会话失败:`, error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// 创建新消息
+app.post('/message/create', async (req, res) => {
+    try {
+        const messageData = req.body;
+        const messageId = await messageDB.createMessage(messageData);
+        
+        res.json({
+            success: true,
+            message: "消息创建成功",
+            message_id: messageId
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 创建消息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 获取会话的所有消息
+app.get('/message/get/:conversationId', async (req, res) => {
+    try {
+        const conversationId = req.params.conversationId;
+        const messages = await messageDB.getMessages(conversationId);
+        
+        res.json({
+            success: true,
+            messages: messages
+        });
+    } catch (error) {
+        console.error('[${new Date().toLocaleString()}] 获取消息失败:', error);
+        res.status(500).json({error: error.message});
+    }
+});
+
+// 获取所有会话（用于调试）
+app.get('/conversation/all', async (req, res) => {
+    try {
+        const result = await dbUtil.query('SELECT * FROM conversations');
+        res.json({
+            success: true,
+            conversations: result
+        });
+    } catch (error) {
+        console.error('获取所有会话失败:', error);
+        res.status(500).json({error: error.message});
+    }
 });

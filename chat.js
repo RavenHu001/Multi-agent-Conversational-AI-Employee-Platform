@@ -1,3 +1,25 @@
+// 配置marked选项
+marked.use({
+    renderer: {
+        image(href, title, text) {
+            // 如果href是对象，说明是完整的图片信息
+            if (typeof href === 'object' && href.href) {
+                return `<img src="${href.href}" alt="${href.text || ''}" style="max-width:300px; max-height:300px; width:auto; height:auto; object-fit:contain;">`;
+            }
+            // 如果是普通URL
+            try {
+                new URL(href); // 验证URL格式
+                return `<img src="${href}" alt="${text || ''}" style="max-width:300px; max-height:300px; width:auto; height:auto; object-fit:contain;">`;
+            } catch (e) {
+                console.error('Invalid image URL:', href);
+                return ''; // 如果URL格式无效，不渲染图片
+            }
+        }
+    },
+    breaks: true, // 支持换行
+    gfm: true    // 启用GitHub风格的markdown
+});
+
 //console.log(localStorage);
 //localStorage.clear();
 document.addEventListener('DOMContentLoaded', async function() {
@@ -76,13 +98,20 @@ async function checkLoginStatus() {
         loginBtn.style.display = 'none';
         userInfo.style.display = 'flex';
         usernameDisplay.textContent = username;
-        //以登录，读取积分
-        //这里不调用points中方法的原因是，个方法涉及到对后端文件的修改会导致无限刷新屏幕
-        const user_data = await loadConfig('user_functions/data/user_data.json');
-        const user_data_item = user_data.find(item=>item.username === username);
-        const points = user_data_item.points;
         
-        pointsDisplay.textContent = `积分: ${points}`;
+        // 获取用户信息
+        try {
+            const response = await fetch(`http://localhost:3000/user/info?username=${username}&is_login=${isLogin}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                pointsDisplay.textContent = `积分: ${data.user_data.points}`;
+            } else {
+                console.error('获取用户信息失败:', data.error);
+            }
+        } catch (error) {
+            console.error('获取用户信息失败:', error);
+        }
     } else {
         // 未登录状态
         loginBtn.style.display = 'block';
@@ -485,24 +514,12 @@ function addMessageToChat(message, type, messageId = null) {
         const username = localStorage.getItem('username') || 'anonymous';
         
         // 获取当前会话ID
-        const currentKey = `currentConversation_${username}_${departmentType}_${agentName}`;
+        const currentKey = `conversations_${username}_${departmentType}_${agentName}`;
         const conversationId = localStorage.getItem(currentKey);
         
         if (conversationId) {
-            // 保存到会话系统
-            const conversations = getConversations(departmentType, agentName);
-            const conversation = conversations.find(c => c.id === conversationId);
-            if (conversation) {
-                conversation.messages.push({
-                    type,
-                    content: message
-                });
-                const key = `conversations_${username}_${departmentType}_${agentName}`;
-                localStorage.setItem(key, JSON.stringify(conversations));
-            }
-        } else {
-            // 保存到历史记录系统
-            appendMessageToHistory(departmentType, agentName, type, message);
+            // 保存到数据库
+            saveMessageToConversation(message, type);
         }
     }
 }
@@ -666,36 +683,40 @@ function saveChatHistory(department, agent, history) {
     localStorage.setItem(key, JSON.stringify(history));
 }
 
-function loadChatHistoryToUI(department, agent) {
+// 加载聊天历史到UI
+async function loadChatHistoryToUI(department, agent) {
     const username = localStorage.getItem('username') || 'anonymous';
     const chatMessages = document.querySelector('.chat-messages');
     chatMessages.innerHTML = '';
     
-    // 获取当前会话ID
-    const currentKey = `currentConversation_${username}_${department}_${agent}`;
-    const conversationId = localStorage.getItem(currentKey);
-    
-    if (conversationId) {
-        // 从会话系统中加载消息
-        const conversations = getConversations(department, agent);
-        const conversation = conversations.find(c => c.id === conversationId);
-        if (conversation && conversation.messages) {
-            conversation.messages.forEach(item => {
+    try {
+        // 获取当前会话
+        const conversations = await getConversations(department, agent);
+        if (conversations && conversations.length > 0) {
+            const conversation = conversations[0]; // 获取最新的会话
+            const conversationId = conversation.conversation_id;
+            // 存储会话ID
+            const currentKey = `conversations_${username}_${department}_${agent}`;
+            localStorage.setItem(currentKey, conversationId);
+            
+            // 获取会话消息
+            const messagesResponse = await fetch(`http://localhost:3000/message/get/${conversationId}`);
+            if (!messagesResponse.ok) {
+                throw new Error(`获取消息失败: ${messagesResponse.status}`);
+            }
+            const messagesData = await messagesResponse.json();
+            const messages = messagesData.messages || [];
+            
+            // 显示消息
+            messages.forEach(message => {
                 const messageElement = document.createElement('div');
-                messageElement.className = `message ${item.type}-message`;
-                messageElement.innerHTML = createMessageContent(item.content, item.type);
+                messageElement.className = `message ${message.message_type}-message`;
+                messageElement.innerHTML = createMessageContent(message.message_content, message.message_type);
                 chatMessages.appendChild(messageElement);
             });
         }
-    } else {
-        // 如果没有当前会话，从历史记录系统加载
-        const history = getChatHistory(department, agent);
-        history.forEach(item => {
-            const messageElement = document.createElement('div');
-            messageElement.className = `message ${item.type}-message`;
-            messageElement.innerHTML = createMessageContent(item.message, item.type);
-            chatMessages.appendChild(messageElement);
-        });
+    } catch (error) {
+        console.error('加载聊天历史失败:', error);
     }
     
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -719,5 +740,12 @@ function removeMessage(messageId) {
     const messageElement = document.getElementById(messageId);
     if (messageElement) {
         messageElement.remove();
+    }
+}
+
+function clearChatArea() {
+    const chatMessages = document.querySelector('.chat-messages');
+    if (chatMessages) {
+        chatMessages.innerHTML = '';
     }
 }

@@ -5,13 +5,21 @@ const operationCost = {
     'add_points':100
 }
 
-async function updatePoints(username, is_login,operation=null) {
-    if(!is_login){  
+async function updatePoints(username, is_login, operation=null) {
+    if(!is_login) {  
         return;
     }
-    const user_data = await loadConfig('user_functions/data/user_data.json');
-    const user_data_item = user_data.find(item=>item.username === username);
-    let points = user_data_item.points;
+
+    // 获取用户当前信息
+    const response = await fetch(`http://localhost:3000/user/info?username=${username}&is_login=${is_login}`);
+    const data = await response.json();
+    
+    if (!data.success) {
+        console.error('获取用户信息失败:', data.error);
+        return;
+    }
+
+    let points = data.user_data.points;
     
     if(operation === 'chat'){
         points-=operationCost.chat;
@@ -25,17 +33,18 @@ async function updatePoints(username, is_login,operation=null) {
     else if(operation === 'add_points'){
         points+=operationCost.add_points;
     }
+
     //呼叫后端更新积分
-    const response = await fetch('http://localhost:3000/user/update_points',{
+    const updateResponse = await fetch('http://localhost:3000/user/update_points',{
         method:'POST',
         body:JSON.stringify({username:username,is_login:is_login,points:points}),
         headers:{
             'Content-Type':'application/json'
         }
     });
-    const data = await response.json();
-    if(data.success){
-        updatePointsDisplay(data.points);
+    const updateData = await updateResponse.json();
+    if(updateData.success){
+        updatePointsDisplay(updateData.points);
     }
 }
 
@@ -46,14 +55,23 @@ function updatePointsDisplay(points){
 }
 
 //检测积分，如果积分不足，则提示用户
-async function checkPoints(username, is_login,operation){
-    if(!is_login){
+async function checkPoints(username, is_login, operation) {
+    if(!is_login) {
         alert('请先登录');
         return false;
     }
-    const user_data = await loadConfig('user_functions/data/user_data.json');
-    const user_data_item = user_data.find(item=>item.username === username);
-    let points = user_data_item.points;
+
+    // 获取用户当前信息
+    const response = await fetch(`http://localhost:3000/user/info?username=${username}&is_login=${is_login}`);
+    const data = await response.json();
+    
+    if (!data.success) {
+        console.error('获取用户信息失败:', data.error);
+        alert('获取用户信息失败');
+        return false;
+    }
+
+    let points = data.user_data.points;
     if(points < operationCost[operation]){
         alert('积分不足');
         return false;
