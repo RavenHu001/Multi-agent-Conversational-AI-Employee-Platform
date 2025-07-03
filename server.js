@@ -754,6 +754,23 @@ app.put('/conversation/update_time/:conversationId', async (req, res) => {
     }
 });
 
+// 更新会话名称
+app.put('/conversation/update_name/:conversationId', async (req, res) => {
+    try {
+        const conversationId = req.params.conversationId;
+        const conversationName = req.body.name;
+        const success = await conversationDB.updateConversationName(conversationId, conversationName);
+        
+        res.json({
+            success: success,
+            message: "会话名称更新成功"
+        });
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString()}] 更新会话名称失败:`, error);
+        res.status(500).json({error: error.message});
+    }
+});
+
 // 删除会话
 app.delete('/conversation/delete/:conversationId', async (req, res) => {
     try {

@@ -135,6 +135,22 @@ class ConversationDB {
     }
 
     /**
+     * 更新会话名称
+     * @param {number} conversationId - 要更新的会话ID
+     * @param {string} conversationName - 要更新的会话名称
+     * @returns {boolean} - 是否更新成功
+     */
+    async updateConversationName(conversationId, conversationName){
+        try{
+            await dbUtil.update('conversations', {conversation_name: conversationName}, 'conversation_id = ?', [conversationId]);
+            return true;
+        }catch(error){
+            console.error('更新会话名称失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 删除会话
      * @param {number} conversationId - 要删除的会话ID
      * @returns {boolean} - 是否删除成功

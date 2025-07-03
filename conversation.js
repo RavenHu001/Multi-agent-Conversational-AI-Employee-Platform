@@ -282,24 +282,31 @@ function renameConversation(element){
     //设置输入框自动获取焦点
     input.focus();
     //保存事件
-    const save=()=>{
+    const save=async ()=>{
         const newName = input.value.trim();
-        if(newName){
-            element.textContent = newName;
-            element.style.display = 'block';
-            //保存到localStorage
-            const urlParams = new URLSearchParams(window.location.search);
-            const departmentType = urlParams.get('department');
-            const agentName = urlParams.get('agent');
-            const username = localStorage.getItem('username') || 'anonymous';
-            
-            const conversations = getConversations(departmentType, agentName);
-            const conversation = conversations.find(c => c.conversation_id === currentConversationId);
-            if(conversation){
-                conversation.conversation_name = newName;
-                const key = `conversations_${username}_${departmentType}_${agentName}`;
-                localStorage.setItem(key, JSON.stringify(conversations));
+        if(newName && newName !== originalName){
+            const conversationId = currentConversationId;
+            try{
+                const response = await fetch(`http://localhost:3000/conversation/update_name/${conversationId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({name: newName})
+                });
+                if(!response.ok){
+                    throw new Error(`更新会话名称失败: ${response.status}`);
+                }
+                element.textContent = newName;
+                element.style.display = 'block';
+            }catch(error){
+                console.error('更新会话名称失败:', error);
+                element.textContent = originalName;
+                element.style.display = 'block';
             }
+        }else{
+            element.textContent = originalName;
+            element.style.display = 'block';
         }
     }
     //事件处理
