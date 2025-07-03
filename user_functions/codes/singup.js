@@ -39,6 +39,7 @@ document.getElementById('singup-form').addEventListener('submit',async function(
     if(response.success){
         alert(response.message);
         localStorage.setItem('is_singup',true);//保存注册状态
+        window.location.href = './login.html';
     }else{
         alert(response.error);
     }
