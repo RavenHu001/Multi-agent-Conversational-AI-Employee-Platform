@@ -14,7 +14,7 @@
     "API-URL": "https://api.coze.cn/v3/chat",
     "API-URL-retrieve": "https://api.coze.cn/v3/chat/retrieve",
     "API-URL-list": "https://api.coze.cn/v3/chat/message/list",
-    "API-Key": "pat_TBuIs2c5jrvHRwIU4pzWAbomPqlR9wy1lTPnhiwQimsdHsDKzytZDdpBa8BtbHM1",
+    "API-Key": "pat_sZLEMLD5DsIkXeaQWAPuXW4T8iNo95CdGbVG44C8sFBY6ZaIUqYNQppFEMmOMSoD",
     "API-Model": "coze",
     "bot-id": "7512006130223333428"
   },
@@ -49,9 +49,9 @@
     "API-URL": "https://api.coze.cn/v3/chat",
     "API-URL-retrieve": "https://api.coze.cn/v3/chat/retrieve",
     "API-URL-list": "https://api.coze.cn/v3/chat/message/list",
-    "API-Key": "pat_fKM401keEqV1UCDbVzjRcMSyu3mO1kWr6BAJyCn9Ukvl4caHzA1mTRgV1yzTD0Gg",
+    "API-Key": "pat_CPtKj7uMJEwQZaJFnlerRwHSKbO4cANdwh2DAn6NnBXAoehqHqO2shXyTIkAFhOo",
     "API-Model": "coze",
-    "bot-id": "7521976054475718698"
+    "bot-id": "7524955818736042018"
   },
   {
     "name": "智能问数",

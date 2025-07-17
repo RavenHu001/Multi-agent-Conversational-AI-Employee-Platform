@@ -475,6 +475,7 @@ app.post('/coze/conversation', async (req, res) => {
                 "bot_id": botId,
                 "user_id": "123456",
                 "stream": true,
+                "auto_save_history":true,
                 "additional_messages": [{
                     "role": "user",
                     "content": userMessage,
@@ -486,7 +487,6 @@ app.post('/coze/conversation', async (req, res) => {
         if (!response.ok) {
             throw new Error(`API request failed: ${response.status}`);
         }
-
         // 使用 Node.js 的流处理方式
         //console.log(response.body);
         response.body.pipe(res);
@@ -540,6 +540,7 @@ app.post('/coze/conversation/upload',async(req,res)=>{
                 "bot_id": botId,
                 "user_id": "123456",
                 "stream": true,
+                "auto_save_history":true,
                 "additional_messages": [{
                     "role": "user",
                     "content": content,
